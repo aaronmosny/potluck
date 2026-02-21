@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Multi-Day Potluck Signup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 20px;
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+    .day {
+      background: #fff;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .slot {
+      border-left: 4px solid #4f46e5;
+      padding-left: 12px;
+      margin-top: 16px;
+    }
+    .item {
+      display: flex;
+      gap: 8px;
+      margin: 6px 0;
+    }
+    .item input {
+      flex: 1;
+      padding: 6px;
+    }
+    .item button {
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    .claimed {
+      background: #e5e7eb;
+    }
+    .claimed input {
+      background: #e5e7eb;
+    }
+    footer {
+      margin-top: 40px;
+      font-size: 0.85em;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🍽️ Multi-Day Potluck Signup</h1>
+
+<div id="potluck"></div>
+
+<footer>
+  Share this link with guests. Items lock once claimed.
+</footer>
+
+<script>
+const data = [
+  {
+    day: "Friday",
+    slots: [
+      {
+        time: "Dinner (6:00 PM)",
+        items: ["Main Dish", "Side Dish", "Salad", "Dessert"]
+      }
+    ]
+  },
+  {
+    day: "Saturday",
+    slots: [
+      {
+        time: "Breakfast (9:00 AM)",
+        items: ["Coffee", "Juice", "Breakfast Dish", "Fruit"]
+      },
+      {
+        time: "Dinner (6:30 PM)",
+        items: ["Main Dish", "Side Dish", "Salad", "Dessert"]
+      }
+    ]
+  },
+  {
+    day: "Sunday",
+    slots: [
+      {
+        time: "Breakfast (9:00 AM)",
+        items: ["Coffee", "Pastries", "Fruit"]
+      },
+      {
+        time: "Dinner (6:00 PM)",
+        items: ["Main Dish", "Side Dish", "Dessert"]
+      }
+    ]
+  }
+];
+
+const container = document.getElementById("potluck");
+
+data.forEach(dayData => {
+  const dayDiv = document.createElement("div");
+  dayDiv.className = "day";
+  dayDiv.innerHTML = `<h2>${dayData.day}</h2>`;
+
+  dayData.slots.forEach(slot => {
+    const slotDiv = document.createElement("div");
+    slotDiv.className = "slot";
+    slotDiv.innerHTML = `<h3>${slot.time}</h3>`;
+
+    slot.items.forEach(item => {
+      const itemDiv = document.createElement("div");
+      itemDiv.className = "item";
+
+      const input = document.createElement("input");
+      input.placeholder = `${item} – Your Name`;
+
+      const button = document.createElement("button");
+      button.textContent = "Claim";
+
+      button.onclick = () => {
+        if (!input.value.trim()) {
+          alert("Please enter your name.");
+          return;
+        }
+        input.disabled = true;
+        button.disabled = true;
+        itemDiv.classList.add("claimed");
+      };
+
+      itemDiv.appendChild(input);
+      itemDiv.appendChild(button);
+      slotDiv.appendChild(itemDiv);
+    });
+
+    dayDiv.appendChild(slotDiv);
+  });
+
+  container.appendChild(dayDiv);
+});
+</script>
+
+</body>
+</html>
