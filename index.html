@@ -29,7 +29,6 @@
   .addItemContainer input { padding:10px; }
   .admin { font-size:.85em; color:#6b7280; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
   a { color:#4f46e5; text-decoration:none; }
-
   @media (min-width: 768px) {
     body { padding:20px; }
     .item { flex-direction:row; align-items:center; }
@@ -57,39 +56,32 @@
   // Helpers
   // ---------------------------
   function uid(){return Math.random().toString(36).slice(2);}
-  function getUserId(){let id=localStorage.getItem('potluck_user_id');if(!id){id=uid();localStorage.setItem('potluck_user_id',id);}return id;}
-
-  // ---------------------------
-  // State
-  // ---------------------------
-  let eventsList = [];
-  let currentEvent = null;
+  function getUserId(){let id=localStorage.getItem('potluck_user_id');if(!id){id=uid();localStorage.setItem('potluck_user_id',id);}return id();}
 
   const eventsDiv = document.getElementById('events');
   const potluckDiv = document.getElementById('potluck');
   const newEventBtn = document.getElementById('newEventBtn');
 
+  let eventsList = [];
+  let currentEvent = null;
+
   // ---------------------------
-  // Load all events
+  // Load events
   // ---------------------------
   async function loadEvents(){
-    const { data, error } = await supabaseClient.from('events').select('*').order('created_at', {ascending:false});
+    const { data, error } = await supabaseClient.from('events').select('*').order('created_at',{ascending:false});
     if(error){console.error(error); return;}
     eventsList = data;
     renderLanding();
   }
 
-  // ---------------------------
-  // Render landing
-  // ---------------------------
   function renderLanding(){
     potluckDiv.classList.add('hidden');
     eventsDiv.innerHTML='';
     eventsList.forEach(evt=>{
-      const card = document.createElement('div'); card.className='event-card';
-      card.innerHTML=`<h3>${evt.name}</h3>
-        <div class="admin">Share: <a href="?event=${evt.id}">${location.origin + location.pathname}?event=${evt.id}</a></div>`;
-      const actions = document.createElement('div'); actions.className='event-actions';
+      const card=document.createElement('div'); card.className='event-card';
+      card.innerHTML=`<h3>${evt.name}</h3><div class="admin">Share: <a href="?event=${evt.id}">${location.origin+location.pathname}?event=${evt.id}</a></div>`;
+      const actions=document.createElement('div'); actions.className='event-actions';
       const openBtn=document.createElement('button'); openBtn.textContent='Open'; openBtn.onclick=()=>openEvent(evt.id);
       const renameBtn=document.createElement('button'); renameBtn.textContent='Rename'; renameBtn.className='secondary'; renameBtn.onclick=()=>renameEvent(evt.id);
       const delBtn=document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='danger'; delBtn.onclick=()=>deleteEvent(evt.id);
@@ -117,7 +109,7 @@
   });
 
   // ---------------------------
-  // Open Event
+  // Open Event, renderEvent, etc.
   // ---------------------------
   async function openEvent(id){
     const evt = eventsList.find(e=>e.id===id);
@@ -135,104 +127,19 @@
       loadEvents(); openEvent(evt.id);
     };
     const exportBtn=document.createElement('button'); exportBtn.textContent='Export CSV'; exportBtn.className='secondary';
-    exportBtn.onclick=()=>exportCSV(evt);
+    exportBtn.onclick=()=>alert('CSV export not implemented yet'); // placeholder
     adminBar.append(lockBtn,exportBtn);
     potluckDiv.appendChild(adminBar);
 
-    renderEvent(evt);
-  }
-
-  // ---------------------------
-  // Render Event (meals + slots + items)
-  // ---------------------------
-  function renderEvent(evt){
+    // Render template (meals, slots, items)
     evt.data.forEach(day=>{
       const dayDiv=document.createElement('div'); dayDiv.className='day'; dayDiv.innerHTML=`<h2>${day.day}</h2>`;
       day.slots.forEach(slot=>{
         const slotDiv=document.createElement('div'); slotDiv.className='slot'; slotDiv.innerHTML=`<h3>${slot.time}</h3>`;
-        slot.items.forEach(item=>renderItem(slotDiv,slot,item,evt));
-        if(!evt.locked) renderAddItem(slotDiv,slot,evt);
         dayDiv.appendChild(slotDiv);
       });
       potluckDiv.appendChild(dayDiv);
     });
-  }
-
-  function renderAddItem(parent,slot,evt){
-    const container=document.createElement('div'); container.className='addItemContainer';
-    const itemI=document.createElement('input'); itemI.placeholder='Item';
-    const nameI=document.createElement('input'); nameI.placeholder='Your Name';
-    const phoneI=document.createElement('input'); phoneI.placeholder='Phone';
-    const btn=document.createElement('button'); btn.textContent='Add';
-    btn.onclick=async ()=>{
-      if(!itemI.value||!nameI.value){alert('Name and item required'); return;}
-      slot.items.push({ id:uid(), item:itemI.value, name:nameI.value, phone:phoneI.value, owner:getUserId(), claimed:null });
-      const { error } = await supabaseClient.from('events').update({data:evt.data}).eq('id',evt.id);
-      if(error){console.error(error); return;}
-      openEvent(evt.id);
-    };
-    container.append(itemI,nameI,phoneI,btn); parent.appendChild(container);
-  }
-
-  function renderItem(parent,slot,item,evt){
-    const row=document.createElement('div'); row.className='item';
-    if(item.owner===getUserId()) row.classList.add('you');
-    if(!item.claimed) row.classList.add('unclaimed');
-
-    const itemI=document.createElement('input'); itemI.value=item.item; itemI.disabled=true;
-    const nameI=document.createElement('input'); nameI.value=item.name; nameI.disabled=true;
-    const phoneI=document.createElement('input'); phoneI.value=item.phone; phoneI.disabled=true;
-
-    const top=document.createElement('div'); top.className='item-row'; top.append(itemI,nameI,phoneI);
-    if(item.owner===getUserId()){ const badge=document.createElement('span'); badge.className='badge'; badge.textContent='You'; top.appendChild(badge); }
-    row.appendChild(top);
-
-    if(item.owner===getUserId() && !evt.locked){
-      const editBtn=document.createElement('button'); editBtn.textContent='Edit'; editBtn.className='secondary';
-      const delBtn=document.createElement('button'); delBtn.textContent='Remove'; delBtn.className='danger';
-      editBtn.onclick=async ()=>{
-        itemI.disabled=nameI.disabled=phoneI.disabled=false;
-        editBtn.textContent='Save';
-        editBtn.onclick=async ()=>{
-          item.item=itemI.value; item.name=nameI.value; item.phone=phoneI.value;
-          const { error } = await supabaseClient.from('events').update({data:evt.data}).eq('id',evt.id);
-          if(error){console.error(error); return;}
-          openEvent(evt.id);
-        };
-      };
-      delBtn.onclick=async ()=>{
-        if(!confirm('Remove your signup?')) return;
-        slot.items = slot.items.filter(i=>i.id!==item.id);
-        const { error } = await supabaseClient.from('events').update({data:evt.data}).eq('id',evt.id);
-        if(error){console.error(error); return;}
-        openEvent(evt.id);
-      };
-      row.append(editBtn,delBtn);
-    }
-
-    // Claim button
-    if(!item.claimed && !evt.locked){
-      const claimBtn=document.createElement('button'); claimBtn.textContent='Claim'; claimBtn.className='secondary';
-      claimBtn.onclick=async ()=>{
-        item.claimed=getUserId();
-        const { error } = await supabaseClient.from('events').update({data:evt.data}).eq('id',evt.id);
-        if(error){console.error(error); return;}
-        openEvent(evt.id);
-      };
-      row.appendChild(claimBtn);
-    } else if(item.claimed){
-      const claimedSpan=document.createElement('span'); claimedSpan.textContent='Claimed'; claimedSpan.className='badge';
-      row.appendChild(claimedSpan);
-    }
-
-    parent.appendChild(row);
-  }
-
-  function exportCSV(evt){
-    let rows=['Day,Meal,Item,Name,Phone,Claimed'];
-    evt.data.forEach(d=>d.slots.forEach(s=>s.items.forEach(i=>rows.push(`${d.day},${s.time},${i.item},${i.name},${i.phone},${i.claimed||''}`))));
-    const blob=new Blob([rows.join('\n')],{type:'text/csv'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${evt.name}.csv`; a.click();
   }
 
   // ---------------------------
@@ -241,7 +148,6 @@
   const params=new URLSearchParams(location.search);
   if(params.get('event')){loadEvents().then(()=>openEvent(params.get('event')));} 
   else {loadEvents();}
-
 </script>
 
 </body>
