@@ -1,39 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Clan Shangri-La Camp Meals</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Supabase JS library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; background:#f5f7fa; margin:0; padding:12px; }
-    h1,h2,h3 { margin-top:0; }
-    button { padding:10px 14px; font-size:1em; cursor:pointer; background:#4f46e5; color:#fff; border:none; border-radius:6px; }
-    button.secondary { background:#6b7280; }
-    button.danger { background:#dc2626; }
-    .event-card { background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
-    .event-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-    .hidden { display:none; }
-    .day { background:#fff; border-radius:12px; padding:16px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
-    .slot { border-left:4px solid #4f46e5; padding-left:12px; margin-top:16px; }
-    .item { display:flex; flex-direction:column; gap:6px; margin:10px 0; padding:10px; background:#f9fafb; border-radius:8px; }
-    .item.you { border:2px solid #4f46e5; background:#eef2ff; }
-    .item.unclaimed { border:2px solid #dc2626; }
-    .item-row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
-    .item input { padding:8px; background:#e5e7eb; border:none; border-radius:6px; flex:1; }
-    .badge { font-size:.75em; font-weight:600; color:#fff; background:#4f46e5; padding:2px 8px; border-radius:999px; margin-left:6px; }
-    .addItemContainer { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
-    .addItemContainer input { padding:10px; }
-    .admin { font-size:.85em; color:#6b7280; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
-    a { color:#4f46e5; text-decoration:none; }
+<meta charset="UTF-8" />
+<title>Clan Shangri-La Camp Meals</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    @media (min-width: 768px) {
-      body { padding:20px; }
-      .item { flex-direction:row; align-items:center; }
-      .addItemContainer { flex-direction:row; }
-    }
-  </style>
+<!-- Load Supabase JS library first -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
+
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; background:#f5f7fa; margin:0; padding:12px; }
+  h1,h2,h3 { margin-top:0; }
+  button { padding:10px 14px; font-size:1em; cursor:pointer; background:#4f46e5; color:#fff; border:none; border-radius:6px; }
+  button.secondary { background:#6b7280; }
+  button.danger { background:#dc2626; }
+  .event-card { background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
+  .event-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .hidden { display:none; }
+  .day { background:#fff; border-radius:12px; padding:16px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
+  .slot { border-left:4px solid #4f46e5; padding-left:12px; margin-top:16px; }
+  .item { display:flex; flex-direction:column; gap:6px; margin:10px 0; padding:10px; background:#f9fafb; border-radius:8px; }
+  .item.you { border:2px solid #4f46e5; background:#eef2ff; }
+  .item.unclaimed { border:2px solid #dc2626; }
+  .item-row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .item input { padding:8px; background:#e5e7eb; border:none; border-radius:6px; flex:1; }
+  .badge { font-size:.75em; font-weight:600; color:#fff; background:#4f46e5; padding:2px 8px; border-radius:999px; margin-left:6px; }
+  .addItemContainer { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .addItemContainer input { padding:10px; }
+  .admin { font-size:.85em; color:#6b7280; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
+  a { color:#4f46e5; text-decoration:none; }
+
+  @media (min-width: 768px) {
+    body { padding:20px; }
+    .item { flex-direction:row; align-items:center; }
+    .addItemContainer { flex-direction:row; }
+  }
+</style>
 </head>
 <body>
 
@@ -44,14 +46,15 @@
 
 <script>
   // ---------------------------
-  // Supabase Setup
+  // Supabase client
   // ---------------------------
   const SUPABASE_URL = "https://amayopmpqvkqbdlkbkog.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtYXlvcG1wcXZrcWJkbGtia29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MTM3NTQsImV4cCI6MjA4NzM4OTc1NH0.7k5eEc3RY4COJMIvDtffwI2eGalY5k0CWARAEkuyJ-M";
+
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ---------------------------
-  // Local helpers
+  // Helpers
   // ---------------------------
   function uid(){return Math.random().toString(36).slice(2);}
   function getUserId(){let id=localStorage.getItem('potluck_user_id');if(!id){id=uid();localStorage.setItem('potluck_user_id',id);}return id;}
@@ -67,7 +70,7 @@
   const newEventBtn = document.getElementById('newEventBtn');
 
   // ---------------------------
-  // Load all events from Supabase
+  // Load all events
   // ---------------------------
   async function loadEvents(){
     const { data, error } = await supabaseClient.from('events').select('*').order('created_at', {ascending:false});
@@ -77,7 +80,7 @@
   }
 
   // ---------------------------
-  // Render landing page
+  // Render landing
   // ---------------------------
   function renderLanding(){
     potluckDiv.classList.add('hidden');
@@ -97,11 +100,10 @@
   }
 
   // ---------------------------
-  // Create New Event
+  // New Event
   // ---------------------------
   newEventBtn.addEventListener('click', async ()=>{
-    const name = prompt('Event name?');
-    if(!name) return;
+    const name = prompt('Event name?'); if(!name) return;
     const adminKey = uid();
     const defaultTemplate = [
       { day:'Friday', slots:[{ time:'Dinner', meal_theme:'', items:[] }]},
@@ -124,7 +126,6 @@
     eventsDiv.innerHTML='<a href="./">← Back to events</a>';
     potluckDiv.innerHTML=''; potluckDiv.classList.remove('hidden');
 
-    // Admin controls
     const adminBar=document.createElement('div'); adminBar.className='admin';
     const lockBtn=document.createElement('button'); lockBtn.textContent=evt.locked?'Unlock Signups':'Lock Signups'; lockBtn.className='secondary';
     lockBtn.onclick=async ()=>{
@@ -138,12 +139,11 @@
     adminBar.append(lockBtn,exportBtn);
     potluckDiv.appendChild(adminBar);
 
-    // Render event
     renderEvent(evt);
   }
 
   // ---------------------------
-  // Render Event
+  // Render Event (meals + slots + items)
   // ---------------------------
   function renderEvent(evt){
     evt.data.forEach(day=>{
@@ -158,9 +158,6 @@
     });
   }
 
-  // ---------------------------
-  // Render Add Item
-  // ---------------------------
   function renderAddItem(parent,slot,evt){
     const container=document.createElement('div'); container.className='addItemContainer';
     const itemI=document.createElement('input'); itemI.placeholder='Item';
@@ -177,9 +174,6 @@
     container.append(itemI,nameI,phoneI,btn); parent.appendChild(container);
   }
 
-  // ---------------------------
-  // Render Item
-  // ---------------------------
   function renderItem(parent,slot,item,evt){
     const row=document.createElement('div'); row.className='item';
     if(item.owner===getUserId()) row.classList.add('you');
@@ -190,9 +184,7 @@
     const phoneI=document.createElement('input'); phoneI.value=item.phone; phoneI.disabled=true;
 
     const top=document.createElement('div'); top.className='item-row'; top.append(itemI,nameI,phoneI);
-
     if(item.owner===getUserId()){ const badge=document.createElement('span'); badge.className='badge'; badge.textContent='You'; top.appendChild(badge); }
-
     row.appendChild(top);
 
     if(item.owner===getUserId() && !evt.locked){
@@ -218,9 +210,9 @@
       row.append(editBtn,delBtn);
     }
 
-    // Claim toggle
+    // Claim button
     if(!item.claimed && !evt.locked){
-      const claimBtn = document.createElement('button'); claimBtn.textContent='Claim'; claimBtn.className='secondary';
+      const claimBtn=document.createElement('button'); claimBtn.textContent='Claim'; claimBtn.className='secondary';
       claimBtn.onclick=async ()=>{
         item.claimed=getUserId();
         const { error } = await supabaseClient.from('events').update({data:evt.data}).eq('id',evt.id);
@@ -236,9 +228,6 @@
     parent.appendChild(row);
   }
 
-  // ---------------------------
-  // Export CSV
-  // ---------------------------
   function exportCSV(evt){
     let rows=['Day,Meal,Item,Name,Phone,Claimed'];
     evt.data.forEach(d=>d.slots.forEach(s=>s.items.forEach(i=>rows.push(`${d.day},${s.time},${i.item},${i.name},${i.phone},${i.claimed||''}`))));
@@ -247,12 +236,13 @@
   }
 
   // ---------------------------
-  // Load on start
+  // Init
   // ---------------------------
   const params=new URLSearchParams(location.search);
   if(params.get('event')){loadEvents().then(()=>openEvent(params.get('event')));} 
   else {loadEvents();}
 
 </script>
+
 </body>
 </html>
