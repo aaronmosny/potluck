@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,28 +6,36 @@
 <title>Clan Shangri-La Camp Meals</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<!-- Supabase JS -->
+<!-- Load Supabase JS library first -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.min.js"></script>
-
 <style>
-body { font-family: system-ui, -apple-system, sans-serif; background:#f5f7fa; margin:0; padding:12px; }
-h1,h2,h3,h4 { margin-top:0; }
-button { padding:10px 14px; font-size:1em; cursor:pointer; background:#4f46e5; color:#fff; border:none; border-radius:6px; }
-button.secondary { background:#6b7280; }
-button.danger { background:#dc2626; }
-.event-card { background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
-.event-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-.day { background:#fff; border-radius:12px; padding:16px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
-.slot { border-left:4px solid #4f46e5; padding-left:12px; margin-top:16px; }
-.item-row { display:flex; justify-content:space-between; align-items:center; margin:6px 0; padding:6px 10px; border-radius:6px; border:1px solid #e5e7eb; }
-.item-row .left { font-weight:500; }
-.badge { font-size:.75em; font-weight:600; color:#fff; background:#4f46e5; padding:2px 8px; border-radius:999px; margin-left:6px; }
-.addItemContainer { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
-.addItemContainer input { flex:1; padding:8px; border-radius:6px; border:none; background:#e5e7eb; }
-.admin { font-size:.85em; color:#6b7280; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
-.hidden { display:none; }
-a { color:#4f46e5; text-decoration:none; }
-@media (min-width:768px){ .addItemContainer { flex-direction:row; } }
+  body { font-family: system-ui, -apple-system, sans-serif; background:#f5f7fa; margin:0; padding:12px; }
+  h1,h2,h3 { margin-top:0; }
+  button { padding:10px 14px; font-size:1em; cursor:pointer; background:#4f46e5; color:#fff; border:none; border-radius:6px; }
+  button.secondary { background:#6b7280; }
+  button.danger { background:#dc2626; }
+  .event-card { background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
+  .event-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .hidden { display:none; }
+  .day { background:#fff; border-radius:12px; padding:16px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
+  .slot { border-left:4px solid #4f46e5; padding-left:12px; margin-top:16px; }
+  .item { display:flex; flex-direction:column; gap:6px; margin:10px 0; padding:10px; background:#f9fafb; border-radius:8px; }
+  .item.you { border:2px solid #4f46e5; background:#eef2ff; }
+  .item.unclaimed { border:2px solid #dc2626; }
+  .item-row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .item input { padding:8px; background:#e5e7eb; border:none; border-radius:6px; flex:1; }
+  .badge { font-size:.75em; font-weight:600; color:#fff; background:#4f46e5; padding:2px 8px; border-radius:999px; margin-left:6px; }
+  .addItemContainer { margin-top:12px; display:flex; flex-direction:column; gap:6px; }
+  .addItemContainer input { padding:8px; border-radius:6px; border:1px solid #d1d5db; flex:1; font-size:1em; }
+  .addItemContainer button.addItemBtn { background:#4f46e5; color:#fff; border:none; border-radius:6px; cursor:pointer; padding:8px 12px; font-weight:600; width:fit-content; }
+  .addItemContainer button.addItemBtn:hover { background:#4338ca; }
+  .admin { font-size:.85em; color:#6b7280; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
+  a { color:#4f46e5; text-decoration:none; }
+  @media (min-width: 768px) {
+    body { padding:20px; }
+    .item { flex-direction:row; align-items:center; }
+    .addItemContainer { flex-direction:row; }
+  }
 </style>
 </head>
 <body>
@@ -38,11 +47,12 @@ a { color:#4f46e5; text-decoration:none; }
 
 <script>
 const SUPABASE_URL = "https://amayopmpqvkqbdlkbkog.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtYXlvcG1wcXZrcWJkbGtia29nIiwicm9sZSI6ImF4IiwiZXhwIjoxNzgyNzc4ODAwfQ.7k5eEc3RY4COJMIvDtffwI2eGalY5k0CWARAEkuyJ-M";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtYXlvcG1wcXZrcWJkbGtia29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MTM3NTQsImV4cCI6MjA4NzM4OTc1NH0.7k5eEc3RY4COJMIvDtffwI2eGalY5k0CWARAEkuyJ-M";
+
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function uid(){return Math.random().toString(36).slice(2);}
-function getUserId(){let id=localStorage.getItem('potluck_user_id');if(!id){id=uid();localStorage.setItem('potluck_user_id',id);}return id;}
+function uid(){ return Math.random().toString(36).slice(2); }
+function getUserId(){ let id = localStorage.getItem('potluck_user_id'); if(!id){ id=uid(); localStorage.setItem('potluck_user_id',id);} return id; }
 
 const eventsDiv = document.getElementById('events');
 const potluckDiv = document.getElementById('potluck');
@@ -51,13 +61,11 @@ const newEventBtn = document.getElementById('newEventBtn');
 let eventsList = [];
 let currentEvent = null;
 
-// ---------------------------
-// Load events
-// ---------------------------
+// ---------------- Load events ----------------
 async function loadEvents(){
   const { data, error } = await supabaseClient.from('events').select('*').order('created_at',{ascending:false});
   if(error){console.error(error); return;}
-  eventsList = data||[];
+  eventsList = data || [];
   renderLanding();
 }
 
@@ -77,9 +85,7 @@ function renderLanding(){
   });
 }
 
-// ---------------------------
-// New Event
-// ---------------------------
+// ---------------- New Event ----------------
 newEventBtn.addEventListener('click', async ()=>{
   const name = prompt('Event name?'); if(!name) return;
   const adminKey = uid();
@@ -94,26 +100,18 @@ newEventBtn.addEventListener('click', async ()=>{
   loadEvents();
 });
 
-// ---------------------------
-// Open Event
-// ---------------------------
-async function saveEvent(evt){
-  const { error } = await supabaseClient.from('events').update({ data: evt.data }).eq('id', evt.id);
-  if(error) console.error(error);
-}
-
+// ---------------- Open Event ----------------
 async function openEvent(id){
   const evt = eventsList.find(e=>e.id===id);
   if(!evt) return;
   currentEvent = evt;
-
   eventsDiv.innerHTML='<a href="./">← Back to events</a>';
   potluckDiv.innerHTML=''; potluckDiv.classList.remove('hidden');
-
+  
   // Event title
-  const title = document.createElement('h2'); title.textContent = evt.name; potluckDiv.appendChild(title);
-
-  // Admin bar
+  const titleH1 = document.createElement('h2'); titleH1.textContent = evt.name;
+  potluckDiv.appendChild(titleH1);
+  
   const adminBar=document.createElement('div'); adminBar.className='admin';
   const lockBtn=document.createElement('button'); lockBtn.textContent=evt.locked?'Unlock Signups':'Lock Signups'; lockBtn.className='secondary';
   lockBtn.onclick=async ()=>{
@@ -127,90 +125,80 @@ async function openEvent(id){
   adminBar.append(lockBtn,exportBtn);
   potluckDiv.appendChild(adminBar);
 
-  // Days & Slots
+  // Render template (meals, slots, items)
   evt.data.forEach(day=>{
     const dayDiv=document.createElement('div'); dayDiv.className='day'; dayDiv.innerHTML=`<h3>${day.day}</h3>`;
-
     day.slots.forEach(slot=>{
       const slotDiv=document.createElement('div'); slotDiv.className='slot'; slotDiv.innerHTML=`<h4>${slot.time}</h4>`;
-      
-      const itemsContainer=document.createElement('div'); itemsContainer.className='addItemContainer';
 
+      // Render existing items
       slot.items.forEach(item=>{
-        const itemRow=document.createElement('div'); itemRow.className='item-row';
-        const left=document.createElement('div'); left.className='left'; left.textContent=item.item;
-        const right=document.createElement('div'); right.style.display='flex'; right.style.alignItems='center';
+        const itemDiv=document.createElement('div'); itemDiv.className='item '+(item.claimed_by?item.claimed_by===getUserId()?'you':'':'unclaimed');
+        itemDiv.innerHTML=`<strong>${item.item}</strong>`+
+          `<div class="item-row">
+            ${item.claimed_by?`Claimed by: ${item.claimed_by}`:''}
+          </div>`;
+        
+        // Claim/Unclaim
+        if(!evt.locked){
+          const claimBtn=document.createElement('button'); claimBtn.textContent=item.claimed_by?'Unclaim':'Claim';
+          claimBtn.onclick=()=>{
+            let name = prompt('Enter your name to claim this item'); 
+            if(!name) return;
+            item.claimed_by = item.claimed_by?null:name;
+            saveEvent(evt);
+            openEvent(evt.id);
+          };
+          itemDiv.querySelector('.item-row').appendChild(claimBtn);
+          
+          // Delete button
+          const delBtn=document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='danger';
+          delBtn.onclick=()=>{
+            if(confirm('Delete this food item?')){
+              slot.items = slot.items.filter(i=>i!==item);
+              saveEvent(evt);
+              openEvent(evt.id);
+            }
+          };
+          itemDiv.querySelector('.item-row').appendChild(delBtn);
+        }
 
-        // Name badge
-        if(item.claimed_by){ const nameBadge=document.createElement('span'); nameBadge.className='badge'; nameBadge.textContent=item.claimed_by; right.appendChild(nameBadge); }
-
-        // Claim button
-        const claimBtn=document.createElement('button'); claimBtn.textContent=item.claimed_by?'Unclaim':'Claim'; claimBtn.className='secondary'; claimBtn.style.marginLeft='6px';
-        claimBtn.onclick=async ()=>{
-          if(!item.claimed_by){
-            const name=prompt('Enter your name to claim this item:'); if(!name) return alert('Name required'); item.claimed_by=name;
-          }else{ item.claimed_by=null; }
-          await saveEvent(evt); openEvent(evt.id);
-        };
-        right.appendChild(claimBtn);
-
-        // Delete button
-        const delBtn=document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='danger'; delBtn.style.marginLeft='6px';
-        delBtn.onclick=async ()=>{
-          if(!confirm('Delete this item?')) return;
-          slot.items=slot.items.filter(i=>i!==item);
-          await saveEvent(evt); openEvent(evt.id);
-        };
-        right.appendChild(delBtn);
-
-        itemRow.append(left,right);
-        itemsContainer.appendChild(itemRow);
+        slotDiv.appendChild(itemDiv);
       });
 
-      // Add new item
-      const addRow=document.createElement('div'); addRow.className='addItemContainer';
-      const addInput=document.createElement('input'); addInput.placeholder='Food item (required)';
-      const addNameInput=document.createElement('input'); addNameInput.placeholder='Your name (optional)';
-      const addBtn=document.createElement('button'); addBtn.textContent='+'; addBtn.onclick=async ()=>{
-        if(!addInput.value.trim()) return alert('Food item required');
-        slot.items.push({ id: uid(), item: addInput.value.trim(), claimed_by: addNameInput.value.trim()||null });
-        await saveEvent(evt); openEvent(evt.id);
-      };
-      addRow.append(addInput,addNameInput,addBtn); itemsContainer.appendChild(addRow);
+      // Add Item row
+      if(!evt.locked){
+        const addDiv=document.createElement('div'); addDiv.className='addItemContainer';
+        const inputItem=document.createElement('input'); inputItem.placeholder='Food item (required)';
+        const inputName=document.createElement('input'); inputName.placeholder='Your name (optional)';
+        const addBtn=document.createElement('button'); addBtn.textContent='+ Add Item'; addBtn.className='addItemBtn';
+        addBtn.onclick=()=>{
+          if(!inputItem.value.trim()){ alert('Food item is required'); return; }
+          slot.items.push({ item: inputItem.value.trim(), claimed_by: inputName.value.trim()||null });
+          inputItem.value=''; inputName.value='';
+          saveEvent(evt);
+          openEvent(evt.id);
+        };
+        addDiv.append(inputItem, inputName, addBtn);
+        slotDiv.appendChild(addDiv);
+      }
 
-      slotDiv.appendChild(itemsContainer);
       dayDiv.appendChild(slotDiv);
     });
-
     potluckDiv.appendChild(dayDiv);
   });
 }
 
-// ---------------------------
-// Admin actions: Rename/Delete
-// ---------------------------
-async function renameEvent(id){
-  const evt=eventsList.find(e=>e.id===id); if(!evt) return;
-  const key=prompt('Admin key?'); if(key!==evt.admin_key){alert('Unauthorized'); return;}
-  const name=prompt('New event name?',evt.name); if(!name) return;
-  const { error } = await supabaseClient.from('events').update({name}).eq('id',evt.id);
-  if(error){alert(error.message); return;}
-  loadEvents();
-}
-async function deleteEvent(id){
-  const evt=eventsList.find(e=>e.id===id); if(!evt) return;
-  const key=prompt('Admin key?'); if(key!==evt.admin_key){alert('Unauthorized'); return;}
-  if(!confirm('Delete this event?')) return;
-  const { error } = await supabaseClient.from('events').delete().eq('id',evt.id);
-  if(error){alert(error.message); return;}
-  loadEvents();
+// ---------------- Save Event ----------------
+async function saveEvent(evt){
+  const { error } = await supabaseClient.from('events').update({data: evt.data}).eq('id', evt.id);
+  if(error) console.error(error);
 }
 
-// ---------------------------
-// Init
-// ---------------------------
+// ---------------- Init ----------------
 const params=new URLSearchParams(location.search);
-if(params.get('event')){ loadEvents().then(()=>openEvent(params.get('event'))); } else { loadEvents(); }
+if(params.get('event')){loadEvents().then(()=>openEvent(params.get('event')));}
+else {loadEvents();}
 </script>
 
 </body>
