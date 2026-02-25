@@ -33,7 +33,7 @@
 <body>
 
 <h1>Clan Shangri-La Camp Meals</h1>
-<button id="newEventBtn">New Event</button>
+<button id="newEventBtn" class="addItem">New Event</button>
 <div id="events"></div>
 <div id="potluck" class="hidden"></div>
 
@@ -66,14 +66,11 @@ function renderLanding(){
   potluckDiv.classList.add('hidden');
   eventsDiv.innerHTML='';
   eventsList.forEach(evt=>{
-    const card=document.createElement('div'); card.className='event-card';
-    card.innerHTML=`<h3>${evt.name}</h3>
-      <div class="admin">Share:
-        <a href="?event=${evt.id}">
-          ${location.origin+location.pathname}?event=${evt.id}
-        </a>
-      </div>`;
-    const actions=document.createElement('div'); actions.className='event-actions';
+    const card=document.createElement('div');
+    card.className='event-card';
+    card.innerHTML=`<h3>${evt.name}</h3>`;
+    const actions=document.createElement('div');
+    actions.className='event-actions';
 
     const openBtn=document.createElement('button');
     openBtn.textContent='Open';
@@ -96,77 +93,55 @@ function renderLanding(){
 }
 
 /* ---------------- New Event ---------------- */
-newEventBtn.addEventListener('click', async ()=>{
-  const name = prompt('Event name?'); if(!name) return;
-  const adminKey = uid();
+newEventBtn.onclick = async ()=>{
+  const name = prompt('Event name?');
+  if(!name) return;
   const template = [
     { day:'Friday', slots:[{ time:'Dinner', items:[] }]},
     { day:'Saturday', slots:[{ time:'Breakfast', items:[]},{ time:'Dinner', items:[]}]},
     { day:'Sunday', slots:[{ time:'Breakfast', items:[]},{ time:'Dinner', items:[]}]}
   ];
-  await supabaseClient.from('events').insert([{
-    id: uid(),
-    name,
-    admin_key: adminKey,
-    locked:false,
-    data:template
-  }]);
-  alert('Admin key (save this): '+adminKey);
+  await supabaseClient.from('events').insert([{ id:uid(), name, data:template }]);
   loadEvents();
-});
+};
 
 /* ---------------- Open Event ---------------- */
-async function openEvent(id){
-  const evt = eventsList.find(e=>e.id===id);
-  if(!evt) return;
-  currentEvent = evt;
+function openEvent(id){
+  currentEvent = eventsList.find(e=>e.id===id);
+  if(!currentEvent) return;
 
-  eventsDiv.innerHTML='<a href="./">← Back</a>';
+  eventsDiv.innerHTML = `
+    <button id="backBtn" class="addItem">← Back to Events</button>
+  `;
+  document.getElementById('backBtn').onclick = () => {
+    history.pushState({}, '', location.pathname);
+    loadEvents();
+  };
+
   potluckDiv.innerHTML='';
   potluckDiv.classList.remove('hidden');
 
   const title=document.createElement('h2');
-  title.textContent=evt.name;
+  title.textContent=currentEvent.name;
   potluckDiv.appendChild(title);
 
-  evt.data.forEach((day,di)=>{
+  currentEvent.data.forEach((day,dayIdx)=>{
     const dayDiv=document.createElement('div');
     dayDiv.className='day';
     dayDiv.innerHTML=`<h3>${day.day}</h3>`;
 
-    day.slots.forEach((slot,si)=>{
+    day.slots.forEach((slot,slotIdx)=>{
       const slotDiv=document.createElement('div');
       slotDiv.className='slot';
       slotDiv.innerHTML=`<h4>${slot.time}</h4>`;
 
-      const items=document.createElement('div');
-
-      slot.items.forEach((item,ii)=>{
+      slot.items.forEach((item,itemIdx)=>{
         const div=document.createElement('div');
         div.className='item';
-        div.innerHTML=`<span>${item.item}</span>
-          <span>${item.claimed_by||''}</span>`;
-        items.appendChild(div);
+        div.innerHTML=`<span>${item.item}</span>`;
+        slotDiv.appendChild(div);
       });
 
-      const add=document.createElement('div');
-      add.className='addItemContainer';
-      const food=document.createElement('input');
-      food.placeholder='Food item';
-      const name=document.createElement('input');
-      name.placeholder='Your name';
-      const btn=document.createElement('button');
-      btn.textContent='+';
-      btn.className='addItem';
-      btn.onclick=async()=>{
-        if(!food.value) return;
-        slot.items.push({ item:food.value, claimed_by:name.value||null });
-        await saveEvent();
-        openEvent(evt.id);
-      };
-      add.append(food,name,btn);
-
-      slotDiv.append(items,add);
       dayDiv.appendChild(slotDiv);
     });
 
@@ -174,36 +149,27 @@ async function openEvent(id){
   });
 }
 
-/* ---------------- Save ---------------- */
-async function saveEvent(){
-  await supabaseClient
-    .from('events')
-    .update({ data: currentEvent.data })
-    .eq('id', currentEvent.id);
-}
-
-/* ---------------- Admin Ops ---------------- */
+/* ---------------- Admin ---------------- */
 async function deleteEvent(evt){
-  const key=prompt('Admin key?');
-  if(key!==evt.admin_key) return alert('Unauthorized');
-  if(!confirm('Delete event?')) return;
+  if(!confirm('Delete this event?')) return;
   await supabaseClient.from('events').delete().eq('id',evt.id);
   loadEvents();
 }
 
-/* 🔓 Admin key REMOVED here */
 async function renameEvent(evt){
   const name = prompt('New name?', evt.name);
   if(!name) return;
-  await supabaseClient.from('events').update({ name }).eq('id',evt.id);
+  await supabaseClient.from('events').update({name}).eq('id',evt.id);
   loadEvents();
 }
 
 /* ---------------- Init ---------------- */
-const params=new URLSearchParams(location.search);
-params.get('event')
-  ? loadEvents().then(()=>openEvent(params.get('event')))
-  : loadEvents();
+const params = new URLSearchParams(location.search);
+if(params.get('event')){
+  loadEvents().then(()=>openEvent(params.get('event')));
+}else{
+  loadEvents();
+}
 </script>
 </body>
 </html>
