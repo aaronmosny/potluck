@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>Clan Shangri-La Camp Meals</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<!-- Load Supabase JS library first -->
+<!-- Supabase JS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.min.js"></script>
+
 <style>
   body { font-family: system-ui, -apple-system, sans-serif; background:#f5f7fa; margin:0; padding:12px; }
   h1,h2,h3 { margin-top:0; }
@@ -16,23 +17,8 @@
   .event-card { background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
   .event-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
   .hidden { display:none; }
-  .day { background:#fff; border-radius:12px; padding:16px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
-  .slot { border-left:4px solid #4f46e5; padding-left:12px; margin-top:16px; }
-  .item { display:flex; flex-direction:column; gap:6px; margin:10px 0; padding:10px; background:#f9fafb; border-radius:8px; }
-  .item.you { border:2px solid #4f46e5; background:#eef2ff; }
-  .item.unclaimed { border:2px solid #dc2626; }
-  .item-row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
-  .item input { padding:8px; background:#e5e7eb; border:none; border-radius:6px; flex:1; }
-  .badge { font-size:.75em; font-weight:600; color:#fff; background:#4f46e5; padding:2px 8px; border-radius:999px; margin-left:6px; }
-  .addItemContainer { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
-  .addItemContainer input { padding:10px; }
   .admin { font-size:.85em; color:#6b7280; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
   a { color:#4f46e5; text-decoration:none; }
-  @media (min-width: 768px) {
-    body { padding:20px; }
-    .item { flex-direction:row; align-items:center; }
-    .addItemContainer { flex-direction:row; }
-  }
 </style>
 </head>
 <body>
@@ -54,8 +40,12 @@
   // ---------------------------
   // Helpers
   // ---------------------------
-  function uid(){return Math.random().toString(36).slice(2);}
-  function getUserId(){let id=localStorage.getItem('potluck_user_id');if(!id){id=uid();localStorage.setItem('potluck_user_id',id);}return id();}
+  function uid(){ return Math.random().toString(36).slice(2); }
+  function getUserId() {
+    let id = localStorage.getItem('potluck_user_id');
+    if(!id){ id = uid(); localStorage.setItem('potluck_user_id', id); }
+    return id;
+  }
 
   const eventsDiv = document.getElementById('events');
   const potluckDiv = document.getElementById('potluck');
@@ -67,33 +57,50 @@
   // ---------------------------
   // Load events
   // ---------------------------
-  async function loadEvents(){
+  async function loadEvents() {
     const { data, error } = await supabaseClient.from('events').select('*').order('created_at',{ascending:false});
-    if(error){console.error(error); return;}
-    eventsList = data;
+    if(error){ console.error(error); return; }
+    eventsList = data || [];
     renderLanding();
   }
 
-  function renderLanding(){
+  // ---------------------------
+  // Render landing (event list)
+  // ---------------------------
+  function renderLanding() {
     potluckDiv.classList.add('hidden');
-    eventsDiv.innerHTML='';
-    eventsList.forEach(evt=>{
-      const card=document.createElement('div'); card.className='event-card';
-      card.innerHTML=`<h3>${evt.name}</h3><div class="admin">Share: <a href="?event=${evt.id}">${location.origin+location.pathname}?event=${evt.id}</a></div>`;
-      const actions=document.createElement('div'); actions.className='event-actions';
-      const openBtn=document.createElement('button'); openBtn.textContent='Open'; openBtn.onclick=()=>openEvent(evt.id);
-      const renameBtn=document.createElement('button'); renameBtn.textContent='Rename'; renameBtn.className='secondary'; renameBtn.onclick=()=>renameEvent(evt.id);
-      const delBtn=document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='danger'; delBtn.onclick=()=>deleteEvent(evt.id);
-      actions.append(openBtn,renameBtn,delBtn);
+    eventsDiv.innerHTML = '';
+
+    if(eventsList.length === 0) {
+      eventsDiv.innerHTML = '<p>No events yet. Click "New Event" to create one!</p>';
+      return;
+    }
+
+    eventsList.forEach(evt => {
+      const card = document.createElement('div'); card.className = 'event-card';
+      card.innerHTML = `
+        <h3>${evt.name}</h3>
+        <div class="admin">
+          Share: <a href="?event=${evt.id}">${location.origin + location.pathname}?event=${evt.id}</a>
+        </div>
+      `;
+
+      // Admin buttons
+      const actions = document.createElement('div'); actions.className = 'event-actions';
+      const openBtn = document.createElement('button'); openBtn.textContent = 'Open'; openBtn.onclick = () => openEvent(evt.id);
+      const renameBtn = document.createElement('button'); renameBtn.textContent = 'Rename'; renameBtn.className = 'secondary'; renameBtn.onclick = () => renameEvent(evt.id);
+      const delBtn = document.createElement('button'); delBtn.textContent = 'Delete'; delBtn.className = 'danger'; delBtn.onclick = () => deleteEvent(evt.id);
+      actions.append(openBtn, renameBtn, delBtn);
       card.appendChild(actions);
+
       eventsDiv.appendChild(card);
     });
   }
 
   // ---------------------------
-  // New Event
+  // Create new event
   // ---------------------------
-  newEventBtn.addEventListener('click', async ()=>{
+  newEventBtn.addEventListener('click', async () => {
     const name = prompt('Event name?'); if(!name) return;
     const adminKey = uid();
     const defaultTemplate = [
@@ -102,39 +109,57 @@
       { day:'Sunday', slots:[{ time:'Breakfast', meal_theme:'', items:[]},{ time:'Dinner', meal_theme:'', items:[]}]}
     ];
     const { data, error } = await supabaseClient.from('events').insert([{ id: uid(), name, admin_key: adminKey, locked:false, data:defaultTemplate }]);
-    if(error){alert('Error creating event'); console.error(error); return;}
+    if(error){ alert('Error creating event'); console.error(error); return; }
     alert('Admin key (save this to manage the event): '+adminKey);
     loadEvents();
   });
 
   // ---------------------------
-  // Open Event, renderEvent, etc.
+  // Event management
   // ---------------------------
+  async function renameEvent(id){
+    const evt = eventsList.find(e=>e.id===id); if(!evt) return;
+    const key = prompt('Admin key?'); if(key!==evt.admin_key){ alert('Unauthorized'); return; }
+    const name = prompt('New event name?', evt.name); if(!name) return;
+    const { error } = await supabaseClient.from('events').update({ name }).eq('id', id);
+    if(error){ alert(error.message); return; }
+    loadEvents();
+  }
+
+  async function deleteEvent(id){
+    const evt = eventsList.find(e=>e.id===id); if(!evt) return;
+    const key = prompt('Admin key?'); if(key!==evt.admin_key){ alert('Unauthorized'); return; }
+    if(!confirm('Delete this event?')) return;
+    const { error } = await supabaseClient.from('events').delete().eq('id', id);
+    if(error){ alert(error.message); return; }
+    loadEvents();
+  }
+
   async function openEvent(id){
     const evt = eventsList.find(e=>e.id===id);
-    if(!evt) return;
+    if(!evt){ alert('Event not found.'); renderLanding(); return; }
     currentEvent = evt;
-    eventsDiv.innerHTML='<a href="./">← Back to events</a>';
-    potluckDiv.innerHTML=''; potluckDiv.classList.remove('hidden');
 
-    const adminBar=document.createElement('div'); adminBar.className='admin';
-    const lockBtn=document.createElement('button'); lockBtn.textContent=evt.locked?'Unlock Signups':'Lock Signups'; lockBtn.className='secondary';
-    lockBtn.onclick=async ()=>{
-      const key=prompt('Admin key?'); if(key!==evt.admin_key){alert('Unauthorized'); return;}
-      const { error } = await supabaseClient.from('events').update({locked:!evt.locked}).eq('id',evt.id);
-      if(error){console.error(error); return;}
-      loadEvents(); openEvent(evt.id);
+    eventsDiv.innerHTML = '<a href="./">← Back to events</a>';
+    potluckDiv.innerHTML = ''; potluckDiv.classList.remove('hidden');
+
+    const adminBar = document.createElement('div'); adminBar.className='admin';
+    const lockBtn = document.createElement('button'); lockBtn.textContent=evt.locked?'Unlock Signups':'Lock Signups'; lockBtn.className='secondary';
+    lockBtn.onclick = async () => {
+      const key = prompt('Admin key?'); if(key!==evt.admin_key){ alert('Unauthorized'); return; }
+      const { error } = await supabaseClient.from('events').update({locked:!evt.locked}).eq('id', evt.id);
+      if(error){ console.error(error); return; }
+      await loadEvents(); openEvent(evt.id);
     };
-    const exportBtn=document.createElement('button'); exportBtn.textContent='Export CSV'; exportBtn.className='secondary';
-    exportBtn.onclick=()=>alert('CSV export not implemented yet'); // placeholder
-    adminBar.append(lockBtn,exportBtn);
+    adminBar.append(lockBtn);
     potluckDiv.appendChild(adminBar);
 
-    // Render template (meals, slots, items)
     evt.data.forEach(day=>{
-      const dayDiv=document.createElement('div'); dayDiv.className='day'; dayDiv.innerHTML=`<h2>${day.day}</h2>`;
+      const dayDiv = document.createElement('div'); dayDiv.className='day';
+      dayDiv.innerHTML = `<h2>${day.day}</h2>`;
       day.slots.forEach(slot=>{
-        const slotDiv=document.createElement('div'); slotDiv.className='slot'; slotDiv.innerHTML=`<h3>${slot.time}</h3>`;
+        const slotDiv = document.createElement('div'); slotDiv.className='slot';
+        slotDiv.innerHTML = `<h3>${slot.time}</h3>`;
         dayDiv.appendChild(slotDiv);
       });
       potluckDiv.appendChild(dayDiv);
@@ -142,12 +167,13 @@
   }
 
   // ---------------------------
-  // Init
+  // Initialize
   // ---------------------------
-  const params=new URLSearchParams(location.search);
-  if(params.get('event')){loadEvents().then(()=>openEvent(params.get('event')));} 
-  else {loadEvents();}
-</script>
+  const params = new URLSearchParams(location.search);
+  loadEvents().then(()=>{
+    if(params.get('event')) openEvent(params.get('event'));
+  });
 
+</script>
 </body>
 </html>
