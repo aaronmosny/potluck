@@ -2,153 +2,260 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Clan Shangri-La Camp Meals</title>
+<title>Camp Meal Event</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<!-- Load Supabase JS library first -->
+<!-- Load Supabase JS library first -->  
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.min.js"></script>
-  
+
 <style>
-  body { font-family: system-ui, -apple-system, sans-serif; background:#f5f7fa; margin:0; padding:12px; }
-  h1,h2,h3 { margin-top:0; }
-  button { padding:10px 14px; font-size:1em; cursor:pointer; background:#4f46e5; color:#fff; border:none; border-radius:6px; }
-  button.secondary { background:#6b7280; }
-  button.danger { background:#dc2626; }
-  .event-card { background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
-  .event-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-  .hidden { display:none; }
-  .day { background:#fff; border-radius:12px; padding:16px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
-  .slot { border-left:4px solid #4f46e5; padding-left:12px; margin-top:16px; }
-  .item { display:flex; flex-direction:column; gap:6px; margin:10px 0; padding:10px; background:#f9fafb; border-radius:8px; }
-  .item.you { border:2px solid #4f46e5; background:#eef2ff; }
-  .item.unclaimed { border:2px solid #dc2626; }
-  .item-row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
-  .item input { padding:8px; background:#e5e7eb; border:none; border-radius:6px; flex:1; }
-  .badge { font-size:.75em; font-weight:600; color:#fff; background:#4f46e5; padding:2px 8px; border-radius:999px; margin-left:6px; }
-  .addItemContainer { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
-  .addItemContainer input { padding:10px; }
-  .admin { font-size:.85em; color:#6b7280; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
-  a { color:#4f46e5; text-decoration:none; }
-  @media (min-width: 768px) {
-    body { padding:20px; }
-    .item { flex-direction:row; align-items:center; }
-    .addItemContainer { flex-direction:row; }
-  }
+body { font-family: system-ui, sans-serif; background:#f5f7fa; padding:12px; }
+h1,h2,h3 { margin-top:0 }
+a { color:#4f46e5; text-decoration:none }
+
+.day { background:#fff; padding:16px; margin-bottom:16px; border-radius:12px }
+
+.slot {
+  border-left:4px solid #4f46e5;
+  padding:12px;
+  margin-top:12px;
+  background:#fafafa;
+  border-radius:8px;
+}
+.slot.dragging { opacity:.4 }
+
+.slot-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.drag-handle {
+  font-size:20px;
+  padding:6px 10px;
+  cursor:grab;
+  user-select:none;
+  touch-action:none;
+}
+
+.drag-handle:active { cursor:grabbing }
+
+.item { padding:10px; margin:8px 0; border-radius:8px; background:#f9fafb }
+.item.unclaimed { border:2px solid #dc2626 }
+.item.you { border:2px solid #4f46e5; background:#eef2ff }
+
+input, textarea {
+  padding:8px;
+  border-radius:6px;
+  border:none;
+  background:#e5e7eb;
+  width:100%;
+  margin-top:6px;
+}
+
+button {
+  padding:6px 10px;
+  border:none;
+  border-radius:6px;
+  background:#4f46e5;
+  color:#fff;
+  cursor:pointer;
+  margin-right:6px;
+}
+
+button.secondary { background:#6b7280 }
+button.danger { background:#dc2626 }
 </style>
 </head>
+
 <body>
 
-<h1>Clan Shangri-La Camp Meals</h1>
-<button id="newEventBtn">New Event</button>
-<div id="events"></div>
-<div id="potluck" class="hidden"></div>
+<a href="./">← Back to events</a>
+<h1 id="title"></h1>
+<div id="content"></div>
 
 <script>
-  // ---------------------------
-  // Supabase client
-  // ---------------------------
-  const SUPABASE_URL = "https://amayopmpqvkqbdlkbkog.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtYXlvcG1wcXZrcWJkbGtia29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MTM3NTQsImV4cCI6MjA4NzM4OTc1NH0.7k5eEc3RY4COJMIvDtffwI2eGalY5k0CWARAEkuyJ-M";
+/* ---------------- SUPABASE ---------------- */
+const SUPABASE_URL = "https://amayopmpqvkqbdlkbkog.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtYXlvcG1wcXZrcWJkbGtia29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MTM3NTQsImV4cCI6MjA4NzM4OTc1NH0.7k5eEc3RY4COJMIvDtffwI2eGalY5k0CWARAEkuyJ-M";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* ---------------- HELPERS ---------------- */
+function uid(){ return Math.random().toString(36).slice(2); }
+function getUserId(){
+  let id = localStorage.getItem('potluck_user_id');
+  if(!id){ id = uid(); localStorage.setItem('potluck_user_id', id); }
+  return id;
+}
 
-  // ---------------------------
-  // Helpers
-  // ---------------------------
-  function uid(){return Math.random().toString(36).slice(2);}
-  function getUserId(){let id=localStorage.getItem('potluck_user_id');if(!id){id=uid();localStorage.setItem('potluck_user_id',id);}return id();}
+const DEFAULT_SLOTS = ["Breakfast","Lunch","Dinner"];
 
-  const eventsDiv = document.getElementById('events');
-  const potluckDiv = document.getElementById('potluck');
-  const newEventBtn = document.getElementById('newEventBtn');
+/* ---------------- LOAD EVENT ---------------- */
+const params = new URLSearchParams(location.search);
+const eventId = params.get('event');
+if(!eventId) alert('No event id');
 
-  let eventsList = [];
-  let currentEvent = null;
+let eventData;
 
-  // ---------------------------
-  // Load events
-  // ---------------------------
-  async function loadEvents(){
-    const { data, error } = await supabaseClient.from('events').select('*').order('created_at',{ascending:false});
-    if(error){console.error(error); return;}
-    eventsList = data;
-    renderLanding();
-  }
+async function loadEvent(){
+  const { data, error } = await supabaseClient
+    .from('events')
+    .select('*')
+    .eq('id', eventId)
+    .single();
 
-  function renderLanding(){
-    potluckDiv.classList.add('hidden');
-    eventsDiv.innerHTML='';
-    eventsList.forEach(evt=>{
-      const card=document.createElement('div'); card.className='event-card';
-      card.innerHTML=`<h3>${evt.name}</h3><div class="admin">Share: <a href="?event=${evt.id}">${location.origin+location.pathname}?event=${evt.id}</a></div>`;
-      const actions=document.createElement('div'); actions.className='event-actions';
-      const openBtn=document.createElement('button'); openBtn.textContent='Open'; openBtn.onclick=()=>openEvent(evt.id);
-      const renameBtn=document.createElement('button'); renameBtn.textContent='Rename'; renameBtn.className='secondary'; renameBtn.onclick=()=>renameEvent(evt.id);
-      const delBtn=document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='danger'; delBtn.onclick=()=>deleteEvent(evt.id);
-      actions.append(openBtn,renameBtn,delBtn);
-      card.appendChild(actions);
-      eventsDiv.appendChild(card);
-    });
-  }
+  if(error){ console.error(error); alert('Failed to load event'); return; }
 
-  // ---------------------------
-  // New Event
-  // ---------------------------
-  newEventBtn.addEventListener('click', async ()=>{
-    const name = prompt('Event name?'); if(!name) return;
-    const adminKey = uid();
-    const defaultTemplate = [
-      { day:'Friday', slots:[{ time:'Dinner', meal_theme:'', items:[] }]},
-      { day:'Saturday', slots:[{ time:'Breakfast', meal_theme:'', items:[]},{ time:'Dinner', meal_theme:'', items:[]}]},
-      { day:'Sunday', slots:[{ time:'Breakfast', meal_theme:'', items:[]},{ time:'Dinner', meal_theme:'', items:[]}]}
-    ];
-    const { data, error } = await supabaseClient.from('events').insert([{ id: uid(), name, admin_key: adminKey, locked:false, data:defaultTemplate }]);
-    if(error){alert('Error creating event'); console.error(error); return;}
-    alert('Admin key (save this to manage the event): '+adminKey);
-    loadEvents();
+  data.data.forEach(day=>{
+    day.notes ??= '';
+    if(!day.slots || day.slots.length===0){
+      day.slots = DEFAULT_SLOTS.map(t=>({
+        id:uid(), time:t, meal_theme:'', items:[]
+      }));
+    }
   });
 
-  // ---------------------------
-  // Open Event, renderEvent, etc.
-  // ---------------------------
-  async function openEvent(id){
-    const evt = eventsList.find(e=>e.id===id);
-    if(!evt) return;
-    currentEvent = evt;
-    eventsDiv.innerHTML='<a href="./">← Back to events</a>';
-    potluckDiv.innerHTML=''; potluckDiv.classList.remove('hidden');
+  eventData = data;
+  renderEvent();
+}
 
-    const adminBar=document.createElement('div'); adminBar.className='admin';
-    const lockBtn=document.createElement('button'); lockBtn.textContent=evt.locked?'Unlock Signups':'Lock Signups'; lockBtn.className='secondary';
-    lockBtn.onclick=async ()=>{
-      const key=prompt('Admin key?'); if(key!==evt.admin_key){alert('Unauthorized'); return;}
-      const { error } = await supabaseClient.from('events').update({locked:!evt.locked}).eq('id',evt.id);
-      if(error){console.error(error); return;}
-      loadEvents(); openEvent(evt.id);
+/* ---------------- RENDER ---------------- */
+function renderEvent(){
+  document.getElementById('title').textContent = eventData.name;
+  const root = document.getElementById('content');
+  root.innerHTML = '';
+
+  eventData.data.forEach(day=>{
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'day';
+    dayDiv.innerHTML = `<h2>${day.day}</h2>`;
+
+    const notes = document.createElement('textarea');
+    notes.placeholder = 'Day notes (e.g. Dinner served at 6pm)';
+    notes.value = day.notes;
+    notes.disabled = eventData.locked;
+    notes.onchange = async ()=>{
+      day.notes = notes.value;
+      await saveEvent();
     };
-    const exportBtn=document.createElement('button'); exportBtn.textContent='Export CSV'; exportBtn.className='secondary';
-    exportBtn.onclick=()=>alert('CSV export not implemented yet'); // placeholder
-    adminBar.append(lockBtn,exportBtn);
-    potluckDiv.appendChild(adminBar);
+    dayDiv.appendChild(notes);
 
-    // Render template (meals, slots, items)
-    evt.data.forEach(day=>{
-      const dayDiv=document.createElement('div'); dayDiv.className='day'; dayDiv.innerHTML=`<h2>${day.day}</h2>`;
-      day.slots.forEach(slot=>{
-        const slotDiv=document.createElement('div'); slotDiv.className='slot'; slotDiv.innerHTML=`<h3>${slot.time}</h3>`;
-        dayDiv.appendChild(slotDiv);
+    day.slots.forEach((slot, index)=>{
+      const slotDiv = document.createElement('div');
+      slotDiv.className = 'slot';
+
+      slotDiv.ondragover = e=>e.preventDefault();
+      slotDiv.ondrop = async e=>{
+        const from = +e.dataTransfer.getData('text/plain');
+        const to = index;
+        day.slots.splice(to,0,day.slots.splice(from,1)[0]);
+        await saveEvent();
+      };
+
+      const header = document.createElement('div');
+      header.className = 'slot-header';
+
+      const left = document.createElement('div');
+      left.style.display = 'flex';
+      left.style.alignItems = 'center';
+
+      const handle = document.createElement('div');
+      handle.className = 'drag-handle';
+      handle.textContent = '☰';
+      handle.draggable = !eventData.locked;
+
+      handle.ondragstart = e=>{
+        slotDiv.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', index);
+      };
+      handle.ondragend = ()=>slotDiv.classList.remove('dragging');
+
+      left.appendChild(handle);
+      left.insertAdjacentHTML('beforeend', `<h3>${slot.time}</h3>`);
+      header.appendChild(left);
+
+      if(!eventData.locked){
+        const del = document.createElement('button');
+        del.className = 'danger';
+        del.textContent = 'Delete';
+        del.onclick = async ()=>{
+          if(confirm(`Delete ${slot.time}?`)){
+            day.slots = day.slots.filter(s=>s.id!==slot.id);
+            await saveEvent();
+          }
+        };
+        header.appendChild(del);
+      }
+
+      slotDiv.appendChild(header);
+
+      const theme = document.createElement('input');
+      theme.placeholder = 'Meal Theme';
+      theme.value = slot.meal_theme || '';
+      theme.disabled = eventData.locked;
+      theme.onchange = async ()=>{
+        slot.meal_theme = theme.value;
+        await saveEvent();
+      };
+      slotDiv.appendChild(theme);
+
+      slot.items.forEach(item=>{
+        const itemDiv = document.createElement('div');
+        itemDiv.className =
+          'item ' +
+          (!item.claimed_by?'unclaimed':'') +
+          (item.claimed_by===getUserId()?' you':'');
+
+        itemDiv.innerHTML = `<strong>${item.item}</strong>`;
+
+        if(!eventData.locked){
+          const btn = document.createElement('button');
+          btn.textContent = item.claimed_by?'Unclaim':'Claim';
+          btn.onclick = async ()=>{
+            item.claimed_by = item.claimed_by?null:getUserId();
+            await saveEvent();
+          };
+          itemDiv.appendChild(btn);
+        }
+
+        slotDiv.appendChild(itemDiv);
       });
-      potluckDiv.appendChild(dayDiv);
+
+      if(!eventData.locked){
+        const add = document.createElement('input');
+        add.placeholder = 'Add item and press Enter';
+        add.onkeypress = async e=>{
+          if(e.key==='Enter' && add.value){
+            slot.items.push({
+              id:uid(),
+              item:add.value,
+              suggested_by:getUserId(),
+              claimed_by:null
+            });
+            await saveEvent();
+          }
+        };
+        slotDiv.appendChild(add);
+      }
+
+      dayDiv.appendChild(slotDiv);
     });
-  }
 
-  // ---------------------------
-  // Init
-  // ---------------------------
-  const params=new URLSearchParams(location.search);
-  if(params.get('event')){loadEvents().then(()=>openEvent(params.get('event')));} 
-  else {loadEvents();}
+    root.appendChild(dayDiv);
+  });
+}
+
+async function saveEvent(){
+  const { error } = await supabaseClient
+    .from('events')
+    .update({ data:eventData.data })
+    .eq('id',eventData.id);
+
+  if(error){ console.error(error); alert('Save failed'); return; }
+  loadEvent();
+}
+
+loadEvent();
 </script>
-
 </body>
 </html>
