@@ -5,7 +5,7 @@
 <title>Camp Meal Event</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<!-- Load Supabase JS library first -->  
+<!-- Supabase v1 (stable + GitHub Pages safe) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.min.js"></script>
 
 <style>
@@ -13,7 +13,12 @@ body { font-family: system-ui, sans-serif; background:#f5f7fa; padding:12px; }
 h1,h2,h3 { margin-top:0 }
 a { color:#4f46e5; text-decoration:none }
 
-.day { background:#fff; padding:16px; margin-bottom:16px; border-radius:12px }
+.day {
+  background:#fff;
+  padding:16px;
+  margin-bottom:16px;
+  border-radius:12px;
+}
 
 .slot {
   border-left:4px solid #4f46e5;
@@ -40,7 +45,12 @@ a { color:#4f46e5; text-decoration:none }
 
 .drag-handle:active { cursor:grabbing }
 
-.item { padding:10px; margin:8px 0; border-radius:8px; background:#f9fafb }
+.item {
+  padding:10px;
+  margin:8px 0;
+  border-radius:8px;
+  background:#f9fafb;
+}
 .item.unclaimed { border:2px solid #dc2626 }
 .item.you { border:2px solid #4f46e5; background:#eef2ff }
 
@@ -82,9 +92,13 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ---------------- HELPERS ---------------- */
 function uid(){ return Math.random().toString(36).slice(2); }
+
 function getUserId(){
   let id = localStorage.getItem('potluck_user_id');
-  if(!id){ id = uid(); localStorage.setItem('potluck_user_id', id); }
+  if(!id){
+    id = uid();
+    localStorage.setItem('potluck_user_id', id);
+  }
   return id;
 }
 
@@ -104,13 +118,21 @@ async function loadEvent(){
     .eq('id', eventId)
     .single();
 
-  if(error){ console.error(error); alert('Failed to load event'); return; }
+  if(error){
+    console.error(error);
+    alert('Failed to load event');
+    return;
+  }
 
+  // Normalize structure
   data.data.forEach(day=>{
     day.notes ??= '';
-    if(!day.slots || day.slots.length===0){
-      day.slots = DEFAULT_SLOTS.map(t=>({
-        id:uid(), time:t, meal_theme:'', items:[]
+    if(!day.slots || day.slots.length === 0){
+      day.slots = DEFAULT_SLOTS.map(name=>({
+        id: uid(),
+        time: name,
+        meal_theme: '',
+        items: []
       }));
     }
   });
@@ -130,6 +152,7 @@ function renderEvent(){
     dayDiv.className = 'day';
     dayDiv.innerHTML = `<h2>${day.day}</h2>`;
 
+    // Day notes
     const notes = document.createElement('textarea');
     notes.placeholder = 'Day notes (e.g. Dinner served at 6pm)';
     notes.value = day.notes;
@@ -144,6 +167,7 @@ function renderEvent(){
       const slotDiv = document.createElement('div');
       slotDiv.className = 'slot';
 
+      // Drop target
       slotDiv.ondragover = e=>e.preventDefault();
       slotDiv.ondrop = async e=>{
         const from = +e.dataTransfer.getData('text/plain');
@@ -152,6 +176,7 @@ function renderEvent(){
         await saveEvent();
       };
 
+      // Header
       const header = document.createElement('div');
       header.className = 'slot-header';
 
@@ -159,6 +184,7 @@ function renderEvent(){
       left.style.display = 'flex';
       left.style.alignItems = 'center';
 
+      // Drag handle
       const handle = document.createElement('div');
       handle.className = 'drag-handle';
       handle.textContent = '☰';
@@ -174,13 +200,14 @@ function renderEvent(){
       left.insertAdjacentHTML('beforeend', `<h3>${slot.time}</h3>`);
       header.appendChild(left);
 
+      // Delete slot
       if(!eventData.locked){
         const del = document.createElement('button');
         del.className = 'danger';
         del.textContent = 'Delete';
         del.onclick = async ()=>{
           if(confirm(`Delete ${slot.time}?`)){
-            day.slots = day.slots.filter(s=>s.id!==slot.id);
+            day.slots = day.slots.filter(s=>s.id !== slot.id);
             await saveEvent();
           }
         };
@@ -189,6 +216,7 @@ function renderEvent(){
 
       slotDiv.appendChild(header);
 
+      // Meal theme
       const theme = document.createElement('input');
       theme.placeholder = 'Meal Theme';
       theme.value = slot.meal_theme || '';
@@ -199,20 +227,21 @@ function renderEvent(){
       };
       slotDiv.appendChild(theme);
 
+      // Items
       slot.items.forEach(item=>{
         const itemDiv = document.createElement('div');
         itemDiv.className =
           'item ' +
-          (!item.claimed_by?'unclaimed':'') +
-          (item.claimed_by===getUserId()?' you':'');
+          (!item.claimed_by ? 'unclaimed ' : '') +
+          (item.claimed_by === getUserId() ? 'you' : '');
 
         itemDiv.innerHTML = `<strong>${item.item}</strong>`;
 
         if(!eventData.locked){
           const btn = document.createElement('button');
-          btn.textContent = item.claimed_by?'Unclaim':'Claim';
+          btn.textContent = item.claimed_by ? 'Unclaim' : 'Claim';
           btn.onclick = async ()=>{
-            item.claimed_by = item.claimed_by?null:getUserId();
+            item.claimed_by = item.claimed_by ? null : getUserId();
             await saveEvent();
           };
           itemDiv.appendChild(btn);
@@ -221,16 +250,18 @@ function renderEvent(){
         slotDiv.appendChild(itemDiv);
       });
 
+      // Add item
       if(!eventData.locked){
         const add = document.createElement('input');
         add.placeholder = 'Add item and press Enter';
         add.onkeypress = async e=>{
-          if(e.key==='Enter' && add.value){
+          if(e.key === 'Enter' && add.value.trim()){
             slot.items.push({
-              id:uid(),
-              item:add.value,
-              suggested_by:getUserId(),
-              claimed_by:null
+              id: uid(),
+              item: add.value.trim(),
+              suggested_by: getUserId(),
+              claimed_by: null,
+              created_at: new Date().toISOString()
             });
             await saveEvent();
           }
@@ -245,17 +276,24 @@ function renderEvent(){
   });
 }
 
+/* ---------------- SAVE ---------------- */
 async function saveEvent(){
   const { error } = await supabaseClient
     .from('events')
-    .update({ data:eventData.data })
-    .eq('id',eventData.id);
+    .update({ data: eventData.data })
+    .eq('id', eventData.id);
 
-  if(error){ console.error(error); alert('Save failed'); return; }
+  if(error){
+    console.error(error);
+    alert('Save failed');
+    return;
+  }
   loadEvent();
 }
 
+/* ---------------- INIT ---------------- */
 loadEvent();
 </script>
+
 </body>
 </html>
