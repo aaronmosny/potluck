@@ -5,37 +5,29 @@
 <title>Clan Shangri-La Camp Meals</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.min.js"></script>
-
 <style>
-body { font-family: system-ui, -apple-system, sans-serif; background:#f5f7fa; margin:0; padding:12px; }
-h1,h2,h3 { margin-top:0; }
-button { padding:10px 14px; font-size:1em; cursor:pointer; background:#4f46e5; color:#fff; border:none; border-radius:6px; }
-button.secondary { background:#6b7280; }
-button.danger { background:#dc2626; }
-.event-card { background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
-.event-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-.hidden { display:none; }
-
-.day { background:#fff; border-radius:12px; padding:16px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
-.slot { border-left:4px solid #4f46e5; padding-left:12px; margin-top:16px; }
-.item { display:flex; justify-content:space-between; align-items:center; margin:10px 0; padding:10px; background:#f9fafb; border-radius:8px; }
-.item-content { display:flex; align-items:center; gap:12px; }
-.item.you { border:2px solid #4f46e5; background:#eef2ff; }
-.item.unclaimed { border:2px solid #dc2626; }
-.item .name-badge { font-size:.75em; font-weight:600; color:#fff; background:#4f46e5; padding:2px 6px; border-radius:999px; }
-
-.addItemContainer { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
-.addItemContainer input { padding:8px; border-radius:6px; border:none; width:100%; }
-.addItemContainer button { align-self:flex-end; }
-
-.admin { font-size:.85em; color:#6b7280; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
-a { color:#4f46e5; text-decoration:none; }
-
-@media (min-width: 768px) {
-  body { padding:20px; }
-  .addItemContainer { flex-direction:row; }
-  .addItemContainer input { flex:1; }
-}
+  body { font-family: system-ui, -apple-system, sans-serif; background:#f5f7fa; margin:0; padding:12px; }
+  h1,h2,h3 { margin-top:0; }
+  button { padding:8px 12px; font-size:1em; cursor:pointer; border:none; border-radius:6px; }
+  button.secondary { background:#6b7280; color:#fff; }
+  button.danger { background:#dc2626; color:#fff; }
+  button.addItem { background:#4f46e5; color:#fff; font-weight:bold; }
+  .event-card { background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
+  .event-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .hidden { display:none; }
+  .day { background:#fff; border-radius:12px; padding:16px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
+  .slot { border-left:4px solid #4f46e5; padding-left:12px; margin-top:16px; }
+  .item { display:flex; align-items:center; justify-content:space-between; margin:6px 0; padding:10px; background:#f9fafb; border-radius:8px; }
+  .item.you { border:2px solid #4f46e5; background:#eef2ff; }
+  .item.unclaimed { border:2px solid #dc2626; }
+  .item-content { display:flex; gap:12px; align-items:center; flex:1; }
+  .item input { padding:6px; border-radius:6px; border:none; }
+  .dragging { opacity:.4; }
+  .drop-target { background:#e0e7ff; }
+  .admin { font-size:.85em; color:#6b7280; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
+  .addItemContainer { display:flex; gap:8px; margin-top:8px; }
+  .addItemContainer input { flex:1; padding:6px; border-radius:6px; border:none; background:#e5e7eb; }
+  @media (min-width: 768px) { body { padding:20px; } }
 </style>
 </head>
 <body>
@@ -51,7 +43,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function uid(){ return Math.random().toString(36).slice(2); }
-function getUserId(){ let id=localStorage.getItem('potluck_user_id'); if(!id){id=uid(); localStorage.setItem('potluck_user_id',id);} return id; }
+function getUserId(){ let id = localStorage.getItem('potluck_user_id'); if(!id){ id=uid(); localStorage.setItem('potluck_user_id',id);} return id; }
 
 const eventsDiv = document.getElementById('events');
 const potluckDiv = document.getElementById('potluck');
@@ -60,10 +52,10 @@ const newEventBtn = document.getElementById('newEventBtn');
 let eventsList = [];
 let currentEvent = null;
 
-// ---------------- Load events ----------------
+/* ---------------- Load Events ---------------- */
 async function loadEvents(){
-  const { data, error } = await supabaseClient.from('events').select('*').order('created_at',{ascending:false});
-  if(error){ console.error(error); return;}
+  const { data, error } = await supabaseClient.from('events').select('*').order('created_at',{ascending:true}); // oldest → newest
+  if(error){console.error(error); return;}
   eventsList = data || [];
   renderLanding();
 }
@@ -73,18 +65,19 @@ function renderLanding(){
   eventsDiv.innerHTML='';
   eventsList.forEach(evt=>{
     const card=document.createElement('div'); card.className='event-card';
-    card.innerHTML=`<h3>${evt.name}</h3><div class="admin">Share: <a href="?event=${evt.id}">${location.origin+location.pathname}?event=${evt.id}</a></div>`;
+    card.innerHTML=`<h3>${evt.name}</h3>
+      <div class="admin">Share: <a href="?event=${evt.id}">${location.origin+location.pathname}?event=${evt.id}</a></div>`;
     const actions=document.createElement('div'); actions.className='event-actions';
     const openBtn=document.createElement('button'); openBtn.textContent='Open'; openBtn.onclick=()=>openEvent(evt.id);
-    const renameBtn=document.createElement('button'); renameBtn.textContent='Rename'; renameBtn.className='secondary'; renameBtn.onclick=()=>renameEvent(evt.id);
-    const delBtn=document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='danger'; delBtn.onclick=()=>deleteEvent(evt.id);
-    actions.append(openBtn,renameBtn,delBtn);
+    const renameBtn=document.createElement('button'); renameBtn.textContent='Rename'; renameBtn.className='secondary'; renameBtn.onclick=()=>renameEvent(evt);
+    const delBtn=document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='danger'; delBtn.onclick=()=>deleteEvent(evt);
+    actions.append(openBtn, renameBtn, delBtn);
     card.appendChild(actions);
     eventsDiv.appendChild(card);
   });
 }
 
-// ---------------- New Event ----------------
+/* ---------------- New Event ---------------- */
 newEventBtn.addEventListener('click', async ()=>{
   const name = prompt('Event name?'); if(!name) return;
   const adminKey = uid();
@@ -99,7 +92,7 @@ newEventBtn.addEventListener('click', async ()=>{
   loadEvents();
 });
 
-// ---------------- Open Event ----------------
+/* ---------------- Open Event ---------------- */
 async function openEvent(id){
   const evt = eventsList.find(e=>e.id===id);
   if(!evt) return;
@@ -107,8 +100,8 @@ async function openEvent(id){
   eventsDiv.innerHTML='<a href="./">← Back to events</a>';
   potluckDiv.innerHTML=''; potluckDiv.classList.remove('hidden');
 
-  const title = document.createElement('h2'); title.textContent = evt.name;
-  potluckDiv.appendChild(title);
+  // Event title
+  const titleH2 = document.createElement('h2'); titleH2.textContent = evt.name; potluckDiv.appendChild(titleH2);
 
   const adminBar=document.createElement('div'); adminBar.className='admin';
   const lockBtn=document.createElement('button'); lockBtn.textContent=evt.locked?'Unlock Signups':'Lock Signups'; lockBtn.className='secondary';
@@ -118,71 +111,106 @@ async function openEvent(id){
     if(error){console.error(error); return;}
     loadEvents(); openEvent(evt.id);
   };
-  adminBar.append(lockBtn);
+  adminBar.appendChild(lockBtn);
   potluckDiv.appendChild(adminBar);
 
-  // Render meals
-  evt.data.forEach(day=>{
-    const dayDiv=document.createElement('div'); dayDiv.className='day'; dayDiv.innerHTML=`<h3>${day.day}</h3>`;
-    day.slots.forEach(slot=>{
-      const slotDiv=document.createElement('div'); slotDiv.className='slot';
-      const slotTitle=document.createElement('h4'); slotTitle.textContent=slot.time; slotDiv.appendChild(slotTitle);
+  evt.data.forEach((day, dayIdx)=>{
+    const dayDiv = document.createElement('div'); dayDiv.className='day'; dayDiv.innerHTML=`<h3>${day.day}</h3>`;
 
-      // Line items
-      slot.items.forEach(item=>{
-        const itemDiv=document.createElement('div'); itemDiv.className='item';
-        const contentDiv=document.createElement('div'); contentDiv.className='item-content';
-        contentDiv.innerHTML=`<span>${item.item}</span>`;
-        if(item.claimed_by) contentDiv.innerHTML+=` <span class="name-badge">${item.claimed_by}</span>`;
-        itemDiv.appendChild(contentDiv);
+    day.slots.forEach((slot, slotIdx)=>{
+      const slotDiv = document.createElement('div'); slotDiv.className='slot';
+      slotDiv.innerHTML=`<h4>${slot.time}</h4>`;
+      const itemsContainer = document.createElement('div'); itemsContainer.className='itemsContainer';
 
-        const btnDiv=document.createElement('div');
-        const claimBtn=document.createElement('button'); claimBtn.textContent=item.claimed_by?'Unclaim':'Claim';
-        claimBtn.onclick=async ()=>{
-          let name = prompt('Your name to claim/unclaim item?');
-          if(!name && !item.claimed_by) return alert('Name required to claim');
-          item.claimed_by = item.claimed_by?null:name;
-          await supabaseClient.from('events').update({data:evt.data}).eq('id',evt.id);
-          openEvent(evt.id);
-        };
-        const delBtn=document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='danger';
-        delBtn.onclick=async ()=>{
-          if(confirm('Delete this item?')) {
-            slot.items = slot.items.filter(i=>i!==item);
-            await supabaseClient.from('events').update({data:evt.data}).eq('id',evt.id);
-            openEvent(evt.id);
-          }
-        };
-        btnDiv.append(claimBtn, delBtn); btnDiv.style.display='flex'; btnDiv.style.gap='6px';
-        itemDiv.appendChild(btnDiv);
-
-        slotDiv.appendChild(itemDiv);
+      // Render existing items
+      slot.items.forEach((item, itemIdx)=>{
+        const itemDiv = createItemDiv(item, dayIdx, slotIdx, itemIdx);
+        itemsContainer.appendChild(itemDiv);
       });
 
-      // Add new item
-      const addDiv=document.createElement('div'); addDiv.className='addItemContainer';
-      const addInput=document.createElement('input'); addInput.placeholder='New food item...';
-      const addBtn=document.createElement('button'); addBtn.textContent='+';
-      addBtn.onclick=async ()=>{
-        const itemName=addInput.value.trim();
-        if(!itemName) return alert('Food item required');
-        const name = prompt('Your name (optional to claim)'); 
-        slot.items.push({item:itemName, claimed_by:name||null});
-        await supabaseClient.from('events').update({data:evt.data}).eq('id',evt.id);
+      // Add item input
+      const addContainer = document.createElement('div'); addContainer.className='addItemContainer';
+      const addInput = document.createElement('input'); addInput.placeholder='Food item';
+      const addName = document.createElement('input'); addName.placeholder='Your name (optional)';
+      const addBtn = document.createElement('button'); addBtn.textContent='+'; addBtn.className='addItem';
+      addBtn.onclick = async ()=>{
+        const food = addInput.value.trim(); if(!food) return alert('Food item required');
+        const name = addName.value.trim()||null;
+        const newItem = { id: uid(), item:food, claimed_by:name };
+        slot.items.push(newItem);
+        await saveEvent();
         openEvent(evt.id);
       };
-      addDiv.append(addInput, addBtn);
-      slotDiv.appendChild(addDiv);
-
+      addContainer.append(addInput, addName, addBtn);
+      slotDiv.append(itemsContainer, addContainer);
       dayDiv.appendChild(slotDiv);
     });
+
     potluckDiv.appendChild(dayDiv);
   });
 }
 
-// ---------------- Admin actions ----------------
-async function renameEvent(id){
-  const evt = eventsList.find(e=>e.id===id); if(!evt) return;
+/* ---------------- Create Item Div ---------------- */
+function createItemDiv(item, dayIdx, slotIdx, itemIdx){
+  const div = document.createElement('div'); div.className='item';
+  div.draggable = true;
+
+  const contentDiv = document.createElement('div'); contentDiv.className='item-content';
+  contentDiv.innerHTML=`<span>${item.item}</span><span>${item.claimed_by?`by ${item.claimed_by}`:''}</span>`;
+  div.appendChild(contentDiv);
+
+  // Buttons
+  const btnContainer = document.createElement('div');
+  const claimBtn = document.createElement('button'); claimBtn.textContent=item.claimed_by?'Unclaim':'Claim'; claimBtn.onclick=async ()=>{
+    const name = prompt('Your name?'); if(!name) return;
+    item.claimed_by = item.claimed_by?null:name;
+    await saveEvent();
+    openEvent(currentEvent.id);
+  };
+  const delBtn = document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='danger'; delBtn.onclick=async ()=>{
+    if(!confirm('Delete this item?')) return;
+    const slot = currentEvent.data[dayIdx].slots[slotIdx];
+    slot.items.splice(itemIdx,1);
+    await saveEvent();
+    openEvent(currentEvent.id);
+  };
+  btnContainer.append(claimBtn, delBtn);
+  div.appendChild(btnContainer);
+
+  // Drag events
+  div.addEventListener('dragstart', e=>{ div.classList.add('dragging'); e.dataTransfer.setData('text/plain', JSON.stringify({dayIdx,slotIdx,itemIdx})); });
+  div.addEventListener('dragend', e=>{ div.classList.remove('dragging'); document.querySelectorAll('.item').forEach(el=>el.classList.remove('drop-target')); });
+
+  div.addEventListener('dragover', e=>{ e.preventDefault(); div.classList.add('drop-target'); });
+  div.addEventListener('dragleave', e=>{ div.classList.remove('drop-target'); });
+  div.addEventListener('drop', async e=>{
+    e.preventDefault(); div.classList.remove('drop-target');
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    const fromItem = currentEvent.data[data.dayIdx].slots[data.slotIdx].items.splice(data.itemIdx,1)[0];
+    currentEvent.data[dayIdx].slots[slotIdx].items.splice(itemIdx,0,fromItem);
+    await saveEvent();
+    openEvent(currentEvent.id);
+  });
+
+  return div;
+}
+
+/* ---------------- Save Event ---------------- */
+async function saveEvent(){
+  const { error } = await supabaseClient.from('events').update({ data: currentEvent.data }).eq('id',currentEvent.id);
+  if(error) console.error(error);
+}
+
+/* ---------------- Event Admin Functions ---------------- */
+async function deleteEvent(evt){
+  const key=prompt('Admin key?'); if(key!==evt.admin_key){alert('Unauthorized'); return;}
+  if(!confirm('Delete this event?')) return;
+  const { error } = await supabaseClient.from('events').delete().eq('id',evt.id);
+  if(error){ alert(error.message); return; }
+  loadEvents();
+}
+
+async function renameEvent(evt){
   const key=prompt('Admin key?'); if(key!==evt.admin_key){alert('Unauthorized'); return;}
   const name = prompt('New name?', evt.name); if(!name) return;
   evt.name=name;
@@ -190,18 +218,11 @@ async function renameEvent(id){
   loadEvents();
 }
 
-async function deleteEvent(id){
-  const evt = eventsList.find(e=>e.id===id); if(!evt) return;
-  const key=prompt('Admin key?'); if(key!==evt.admin_key){alert('Unauthorized'); return;}
-  if(!confirm('Delete this event?')) return;
-  await supabaseClient.from('events').delete().eq('id',evt.id);
-  loadEvents();
-}
+/* ---------------- Init ---------------- */
+const params = new URLSearchParams(location.search);
+if(params.get('event')){ loadEvents().then(()=>openEvent(params.get('event'))); } 
+else { loadEvents(); }
 
-// ---------------- Init ----------------
-const params=new URLSearchParams(location.search);
-if(params.get('event')){loadEvents().then(()=>openEvent(params.get('event')));} 
-else {loadEvents();}
 </script>
 </body>
 </html>
