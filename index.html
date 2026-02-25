@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.min.js"></script>
 <style>
   body { font-family: system-ui, -apple-system, sans-serif; background:#f5f7fa; margin:0; padding:12px; }
-  h1,h2,h3 { margin-top:0; }
+  h1,h2,h3,h4 { margin-top:0; }
   button { padding:8px 12px; font-size:1em; cursor:pointer; border:none; border-radius:6px; }
   button.secondary { background:#6b7280; color:#fff; }
   button.danger { background:#dc2626; color:#fff; }
@@ -17,16 +17,17 @@
   .hidden { display:none; }
   .day { background:#fff; border-radius:12px; padding:16px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
   .slot { border-left:4px solid #4f46e5; padding-left:12px; margin-top:16px; }
-  .meal-theme { margin:6px 0 10px; }
-  .meal-theme input {
-    width:100%;
-    padding:6px;
-    border-radius:6px;
-    border:none;
-    background:#e5e7eb;
-    font-style:italic;
-  }
+  .meal-theme { margin:4px 0 8px 0; padding:6px; width:100%; border-radius:6px; border:none; background:#e5e7eb; }
   .item { display:flex; align-items:center; justify-content:space-between; margin:6px 0; padding:10px; background:#f9fafb; border-radius:8px; }
+  .item.you { border:2px solid #4f46e5; background:#eef2ff; }
+  .item.unclaimed { border:2px solid #dc2626; }
+  .item-content { display:flex; gap:12px; align-items:center; flex:1; }
+  .item input { padding:6px; border-radius:6px; border:none; }
+  .dragging { opacity:.4; }
+  .drop-target { background:#e0e7ff; }
+  .admin { font-size:.85em; color:#6b7280; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
+  .addItemContainer { display:flex; gap:8px; margin-top:8px; }
+  .addItemContainer input { flex:1; padding:6px; border-radius:6px; border:none; background:#e5e7eb; }
   @media (min-width: 768px) { body { padding:20px; } }
 </style>
 </head>
@@ -64,8 +65,9 @@ async function loadEvents(){
 
 function renderLanding(){
   potluckDiv.classList.add('hidden');
-  newEventBtn.style.display = 'inline-block';
   eventsDiv.innerHTML='';
+  newEventBtn.style.display = 'inline-block';
+
   eventsList.forEach(evt=>{
     const card=document.createElement('div');
     card.className='event-card';
@@ -111,11 +113,9 @@ function openEvent(id){
   currentEvent = eventsList.find(e=>e.id===id);
   if(!currentEvent) return;
 
+  // Hide New Event, show Back
   newEventBtn.style.display = 'none';
-
-  eventsDiv.innerHTML = `
-    <button id="backBtn" class="addItem">← Back to Events</button>
-  `;
+  eventsDiv.innerHTML = `<button id="backBtn" class="addItem">← Back to Events</button>`;
   document.getElementById('backBtn').onclick = () => {
     history.pushState({}, '', location.pathname);
     loadEvents();
@@ -136,28 +136,42 @@ function openEvent(id){
     day.slots.forEach((slot,slotIdx)=>{
       const slotDiv=document.createElement('div');
       slotDiv.className='slot';
-
-      const themeDiv=document.createElement('div');
-      themeDiv.className='meal-theme';
-      const themeInput=document.createElement('input');
-      themeInput.placeholder='Meal theme (optional)';
-      themeInput.value = slot.theme || '';
-      themeInput.onblur = async ()=>{
-        slot.theme = themeInput.value;
-        await saveEvent();
-      };
-      themeDiv.appendChild(themeInput);
-
       slotDiv.innerHTML=`<h4>${slot.time}</h4>`;
-      slotDiv.appendChild(themeDiv);
 
-      slot.items.forEach(item=>{
-        const div=document.createElement('div');
-        div.className='item';
-        div.textContent=item.item;
-        slotDiv.appendChild(div);
+      // Meal Theme input
+      const themeInput = document.createElement('input');
+      themeInput.className='meal-theme';
+      themeInput.placeholder='Meal Theme / Notes';
+      themeInput.value = slot.theme || '';
+      themeInput.onchange = async ()=>{ slot.theme = themeInput.value; await saveEvent(); };
+      slotDiv.appendChild(themeInput);
+
+      // Items container
+      const itemsContainer = document.createElement('div');
+      itemsContainer.className='itemsContainer';
+
+      // Render existing items
+      slot.items.forEach((item,itemIdx)=>{
+        const itemDiv = createItemDiv(item, dayIdx, slotIdx, itemIdx);
+        itemsContainer.appendChild(itemDiv);
       });
 
+      // Add item container
+      const addContainer = document.createElement('div');
+      addContainer.className='addItemContainer';
+      const addInput = document.createElement('input'); addInput.placeholder='Food item';
+      const addName = document.createElement('input'); addName.placeholder='Your name (optional)';
+      const addBtn = document.createElement('button'); addBtn.textContent='+'; addBtn.className='addItem';
+      addBtn.onclick = async ()=>{
+        const food = addInput.value.trim(); if(!food) return alert('Food item required');
+        const name = addName.value.trim()||null;
+        slot.items.push({ id: uid(), item: food, claimed_by: name });
+        await saveEvent();
+        openEvent(currentEvent.id);
+      };
+      addContainer.append(addInput, addName, addBtn);
+
+      slotDiv.append(itemsContainer, addContainer);
       dayDiv.appendChild(slotDiv);
     });
 
@@ -165,12 +179,75 @@ function openEvent(id){
   });
 }
 
+/* ---------------- Item div ---------------- */
+function createItemDiv(item, dayIdx, slotIdx, itemIdx){
+  const div = document.createElement('div');
+  div.className='item';
+  if(!item.claimed_by) div.classList.add('unclaimed');
+
+  const contentDiv = document.createElement('div');
+  contentDiv.className='item-content';
+  contentDiv.innerHTML=`<span>${item.item}</span><span>${item.claimed_by?`by ${item.claimed_by}`:''}</span>`;
+  div.appendChild(contentDiv);
+
+  // Buttons container
+  const btnContainer = document.createElement('div');
+
+  // Claim / Unclaim
+  const claimBtn = document.createElement('button');
+  claimBtn.textContent = item.claimed_by ? 'Unclaim' : 'Claim';
+  claimBtn.onclick = async ()=>{
+    if(item.claimed_by){
+      item.claimed_by = null;
+    } else {
+      const name = prompt('Your name?'); if(!name) return;
+      item.claimed_by = name;
+    }
+    await saveEvent();
+    openEvent(currentEvent.id);
+  };
+
+  // Delete button
+  const delBtn = document.createElement('button');
+  delBtn.textContent='Delete'; delBtn.className='danger';
+  delBtn.onclick=async ()=>{
+    if(!confirm('Delete this item?')) return;
+    const slot = currentEvent.data[dayIdx].slots[slotIdx];
+    slot.items.splice(itemIdx,1);
+    await saveEvent();
+    openEvent(currentEvent.id);
+  };
+
+  btnContainer.append(claimBtn, delBtn);
+  div.appendChild(btnContainer);
+
+  // Drag & drop
+  div.draggable = true;
+  div.addEventListener('dragstart', e=>{
+    div.classList.add('dragging');
+    e.dataTransfer.setData('text/plain', JSON.stringify({dayIdx,slotIdx,itemIdx}));
+  });
+  div.addEventListener('dragend', e=>{
+    div.classList.remove('dragging');
+    document.querySelectorAll('.item').forEach(el=>el.classList.remove('drop-target'));
+  });
+  div.addEventListener('dragover', e=>{ e.preventDefault(); div.classList.add('drop-target'); });
+  div.addEventListener('dragleave', e=>{ div.classList.remove('drop-target'); });
+  div.addEventListener('drop', async e=>{
+    e.preventDefault(); div.classList.remove('drop-target');
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    const fromItem = currentEvent.data[data.dayIdx].slots[data.slotIdx].items.splice(data.itemIdx,1)[0];
+    currentEvent.data[dayIdx].slots[slotIdx].items.splice(itemIdx,0,fromItem);
+    await saveEvent();
+    openEvent(currentEvent.id);
+  });
+
+  return div;
+}
+
 /* ---------------- Save ---------------- */
 async function saveEvent(){
-  await supabaseClient
-    .from('events')
-    .update({ data: currentEvent.data })
-    .eq('id', currentEvent.id);
+  await supabaseClient.from('events').update({ data: currentEvent.data }).eq('id', currentEvent.id);
 }
 
 /* ---------------- Admin ---------------- */
