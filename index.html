@@ -1,227 +1,325 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>Clan Shangri-La Camp Meals</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
-  body { font-family: system-ui, -apple-system, sans-serif; background:#f5f7fa; margin:0; padding:12px; }
-  h1,h2,h3,h4 { margin-top:0; }
-  button { padding:8px 12px; font-size:1em; cursor:pointer; border:none; border-radius:6px; }
-  button.secondary { background:#6b7280; color:#fff; }
-  button.danger { background:#dc2626; color:#fff; }
-  button.addItem { background:#4f46e5; color:#fff; font-weight:bold; }
-  .event-card { background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
-  .event-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-  .hidden { display:none; }
-  .day { background:#fff; border-radius:12px; padding:16px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,.08); width:100%; box-sizing:border-box; }
-  .slot { border-left:4px solid #4f46e5; padding-left:12px; margin-top:16px; }
-  .meal-theme { margin:6px 0; padding:6px; border-radius:6px; border:1px solid #d1d5db; width:100%; box-sizing:border-box; }
-  .item { display:flex; align-items:center; justify-content:space-between; margin:6px 0; padding:10px; background:#f9fafb; border-radius:8px; flex-wrap:wrap; }
-  .item.you { border:2px solid #4f46e5; background:#eef2ff; }
-  .item.unclaimed { border:2px solid #dc2626; }
-  .item-content { display:flex; gap:12px; align-items:center; flex:1; flex-wrap:wrap; }
-  .item input { padding:6px; border-radius:6px; border:none; }
-  .dragging { opacity:.4; }
-  .drop-target { background:#e0e7ff; }
-  .admin { font-size:.85em; color:#6b7280; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
-  .addItemContainer { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
-  .addItemContainer input { flex:1; padding:6px; border-radius:6px; border:none; background:#e5e7eb; }
-  @media (max-width: 767px) {
-    .item { flex-direction: column; align-items:flex-start; }
-    .item-content { margin-bottom:6px; }
-    .item button { margin-right:6px; margin-bottom:4px; width:auto; }
+body { 
+  font-family: system-ui, -apple-system, sans-serif; 
+  background:#f5f7fa; 
+  margin:0; 
+  padding:12px; 
+}
+
+h1,h2,h3,h4 { margin-top:0; }
+
+button { 
+  padding:10px 14px; 
+  font-size:1em; 
+  cursor:pointer; 
+  background:#4f46e5; 
+  color:#fff; 
+  border:none; 
+  border-radius:6px; 
+}
+
+button.secondary { background:#6b7280; }
+button.danger { background:#dc2626; }
+
+.day { 
+  background:#fff; 
+  border-radius:12px; 
+  padding:16px; 
+  margin-bottom:20px; 
+  box-shadow:0 2px 6px rgba(0,0,0,.08);
+  width:100%;
+  box-sizing:border-box;
+}
+
+.slot { 
+  border-left:4px solid #4f46e5; 
+  padding-left:12px; 
+  margin-top:16px; 
+}
+
+.headcount-row {
+  margin-top:6px;
+  margin-bottom:10px;
+  font-size:.9em;
+}
+
+.headcount-row input {
+  width:80px;
+  padding:6px;
+  border-radius:6px;
+  border:1px solid #d1d5db;
+  margin-left:6px;
+}
+
+.item-row { 
+  display:flex; 
+  justify-content:space-between; 
+  align-items:center; 
+  margin:6px 0; 
+  padding:10px; 
+  border-radius:8px; 
+  border:1px solid #e5e7eb;
+  background:#fafafa;
+  flex-wrap:wrap;
+}
+
+.item-row .left { font-weight:500; }
+
+.item-actions {
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.unclaimed {
+  border:2px solid #dc2626 !important;
+  background:#fef2f2;
+}
+
+.badge { 
+  font-size:.75em; 
+  font-weight:600; 
+  color:#fff; 
+  background:#4f46e5; 
+  padding:4px 8px; 
+  border-radius:999px; 
+}
+
+.addItemContainer { 
+  display:flex; 
+  gap:6px; 
+  margin-top:8px; 
+  flex-wrap:wrap; 
+}
+
+.addItemContainer input { 
+  flex:1; 
+  padding:8px; 
+  border-radius:6px; 
+  border:none; 
+  background:#e5e7eb; 
+}
+
+.admin { 
+  font-size:.85em; 
+  color:#6b7280; 
+  margin:10px 0; 
+  display:flex; 
+  flex-wrap:wrap; 
+  gap:8px; 
+}
+
+a { 
+  color:#4f46e5; 
+  text-decoration:none; 
+  font-weight:500;
+}
+
+/* Mobile optimization */
+@media (max-width: 640px) {
+
+  .item-row {
+    flex-direction:column;
+    align-items:flex-start;
   }
-  @media (min-width: 768px) { body { padding:20px; } }
+
+  .item-actions {
+    width:100%;
+    margin-top:8px;
+    flex-wrap:wrap;
+  }
+
+  .item-actions button {
+    margin-top:4px;
+  }
+}
 </style>
 </head>
 <body>
 
-<h1>Clan Shangri-La Camp Meals</h1>
-<button id="newEventBtn" class="addItem">New Event</button>
-<div id="events"></div>
-<div id="potluck" class="hidden"></div>
+<a href="./">← Back to events</a>
+<h1 id="eventName"></h1>
+<div id="potluck"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.min.js"></script>
 <script>
 const SUPABASE_URL = "https://amayopmpqvkqbdlkbkog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtYXlvcG1wcXZrcWJkbGtia29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MTM3NTQsImV4cCI6MjA4NzM4OTc1NH0.7k5eEc3RY4COJMIvDtffwI2eGalY5k0CWARAEkuyJ-M";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function uid(){ return Math.random().toString(36).slice(2); }
+function uid(){return Math.random().toString(36).slice(2);}
 
-const eventsDiv = document.getElementById('events');
 const potluckDiv = document.getElementById('potluck');
-const newEventBtn = document.getElementById('newEventBtn');
+const eventNameH1 = document.getElementById('eventName');
 
-let eventsList = [];
 let currentEvent = null;
 
-/* ---------------- Load Events ---------------- */
-async function loadEvents(){
+// Load event
+async function loadEvent(eventId){
   const { data, error } = await supabaseClient
     .from('events')
     .select('*')
-    .order('created_at',{ascending:true});
-  if(error){console.error(error); return;}
-  eventsList = data || [];
-  renderLanding();
+    .eq('id', eventId)
+    .single();
+
+  if(error){console.error(error); alert('Failed to load event'); return;}
+  currentEvent = data;
+  renderEvent();
 }
 
-function renderLanding(){
-  potluckDiv.classList.add('hidden');
-  newEventBtn.style.display = "inline-block";
-  eventsDiv.innerHTML='';
-  eventsList.forEach(evt=>{
-    const card=document.createElement('div');
-    card.className='event-card';
-    card.innerHTML=`<h3>${evt.name}</h3>`;
-    const actions=document.createElement('div');
-    actions.className='event-actions';
+// Save event
+async function saveEvent(){
+  const { error } = await supabaseClient
+    .from('events')
+    .update({data: currentEvent.data})
+    .eq('id', currentEvent.id);
 
-    const openBtn=document.createElement('button');
-    openBtn.textContent='Open';
-    openBtn.onclick=()=>openEvent(evt.id);
-
-    const renameBtn=document.createElement('button');
-    renameBtn.textContent='Rename';
-    renameBtn.className='secondary';
-    renameBtn.onclick=()=>renameEvent(evt);
-
-    const delBtn=document.createElement('button');
-    delBtn.textContent='Delete';
-    delBtn.className='danger';
-    delBtn.onclick=()=>deleteEvent(evt);
-
-    actions.append(openBtn, renameBtn, delBtn);
-    card.appendChild(actions);
-    eventsDiv.appendChild(card);
-  });
+  if(error){console.error(error); alert('Save failed'); return;}
+  loadEvent(currentEvent.id);
 }
 
-/* ---------------- New Event ---------------- */
-newEventBtn.onclick = async ()=>{
-  const name = prompt('Event name?');
-  if(!name) return;
-  const template = [
-    { day:'Friday', slots:[{ time:'Dinner', meal_theme:'', items:[] }]},
-    { day:'Saturday', slots:[{ time:'Breakfast', meal_theme:'', items:[]},{ time:'Dinner', meal_theme:'', items:[]}]},
-    { day:'Sunday', slots:[{ time:'Breakfast', meal_theme:'', items:[]},{ time:'Dinner', meal_theme:'', items:[]}]}
-  ];
-  await supabaseClient.from('events').insert([{ id:uid(), name, data:template }]);
-  loadEvents();
-};
-
-/* ---------------- Open Event ---------------- */
-function openEvent(id){
-  currentEvent = eventsList.find(e=>e.id===id);
-  if(!currentEvent) return;
-
-  eventsDiv.innerHTML = `
-    <button id="backBtn" class="addItem">← Back to Events</button>
-  `;
-  document.getElementById('backBtn').onclick = () => {
-    history.pushState({}, '', location.pathname);
-    loadEvents();
-  };
-  newEventBtn.style.display="none";
-
+// Render event
+function renderEvent(){
+  eventNameH1.textContent = currentEvent.name;
   potluckDiv.innerHTML='';
-  potluckDiv.classList.remove('hidden');
 
-  const title=document.createElement('h2');
-  title.textContent=currentEvent.name;
-  potluckDiv.appendChild(title);
+  const adminBar=document.createElement('div'); 
+  adminBar.className='admin';
 
-  currentEvent.data.forEach((day,dayIdx)=>{
-    const dayDiv=document.createElement('div');
-    dayDiv.className='day';
-    dayDiv.innerHTML=`<h3>${day.day}</h3>`;
+  const lockBtn=document.createElement('button'); 
+  lockBtn.textContent=currentEvent.locked?'Unlock Signups':'Lock Signups'; 
+  lockBtn.className='secondary';
 
-    day.slots.forEach((slot,slotIdx)=>{
-      const slotDiv=document.createElement('div');
-      slotDiv.className='slot';
-      slotDiv.innerHTML=`<h4>${slot.time}</h4>`;
+  lockBtn.onclick=async ()=>{
+    const key=prompt('Admin key?'); 
+    if(key!==currentEvent.admin_key){alert('Unauthorized'); return;}
+    await supabaseClient
+      .from('events')
+      .update({locked:!currentEvent.locked})
+      .eq('id',currentEvent.id);
+    loadEvent(currentEvent.id);
+  };
 
-      // Meal theme editable
-      const themeInput=document.createElement('input');
-      themeInput.value = slot.meal_theme || '';
-      themeInput.placeholder = "Meal theme (editable)";
-      themeInput.className='meal-theme';
-      themeInput.onchange = async ()=>{
-        slot.meal_theme = themeInput.value;
+  adminBar.append(lockBtn);
+  potluckDiv.appendChild(adminBar);
+
+  currentEvent.data.forEach(day=>{
+    const dayDiv=document.createElement('div'); 
+    dayDiv.className='day'; 
+    dayDiv.innerHTML=`<h2>${day.day}</h2>`;
+
+    day.slots.forEach(slot=>{
+      if(slot.headcount === undefined) slot.headcount = 0;
+
+      const slotDiv=document.createElement('div'); 
+      slotDiv.className='slot'; 
+      slotDiv.innerHTML=`<h3>${slot.time}</h3>`;
+
+      // Headcount
+      const headcountRow=document.createElement('div');
+      headcountRow.className='headcount-row';
+      headcountRow.innerHTML=`Headcount:`;
+
+      const headcountInput=document.createElement('input');
+      headcountInput.type='number';
+      headcountInput.min='0';
+      headcountInput.value=slot.headcount;
+
+      headcountInput.onchange=async ()=>{
+        slot.headcount=parseInt(headcountInput.value)||0;
         await saveEvent();
       };
-      slotDiv.appendChild(themeInput);
 
-      // Items container
-      slot.items.forEach((item,itemIdx)=>{
-        const itemDiv = document.createElement('div');
-        itemDiv.className='item';
-        itemDiv.draggable=true;
+      headcountRow.appendChild(headcountInput);
+      slotDiv.appendChild(headcountRow);
 
-        const contentDiv=document.createElement('div');
-        contentDiv.className='item-content';
-        contentDiv.innerHTML=`<span>${item.item}</span><span>${item.claimed_by?`by ${item.claimed_by}`:''}</span>`;
-        itemDiv.appendChild(contentDiv);
+      const itemsContainer=document.createElement('div');
 
-        const btnContainer = document.createElement('div');
-        const claimBtn=document.createElement('button');
-        claimBtn.textContent = item.claimed_by?'Unclaim':'Claim';
-        claimBtn.onclick = async ()=>{
-          if(item.claimed_by){
-            item.claimed_by = null;
-          }else{
-            const name = prompt('Your name?'); if(!name) return;
-            item.claimed_by = name;
+      slot.items.forEach(item=>{
+        const itemRow=document.createElement('div'); 
+        itemRow.className='item-row';
+
+        if(!item.claimed_by){
+          itemRow.classList.add('unclaimed');
+        }
+
+        const left=document.createElement('div'); 
+        left.className='left'; 
+        left.textContent=item.item;
+
+        const actions=document.createElement('div'); 
+        actions.className='item-actions';
+
+        if(item.claimed_by){ 
+          const badge=document.createElement('span'); 
+          badge.className='badge'; 
+          badge.textContent=item.claimed_by; 
+          actions.appendChild(badge); 
+        }
+
+        const claimBtn=document.createElement('button'); 
+        claimBtn.textContent=item.claimed_by?'Unclaim':'Claim'; 
+        claimBtn.className='secondary';
+
+        claimBtn.onclick=async ()=>{
+          if(!item.claimed_by){
+            const name=prompt('Enter your name to claim this item:'); 
+            if(!name) return alert('Name required'); 
+            item.claimed_by=name;
+          }else{ 
+            item.claimed_by=null; 
           }
           await saveEvent();
-          openEvent(currentEvent.id);
         };
-        const delBtn=document.createElement('button');
-        delBtn.textContent='Delete'; delBtn.className='danger';
-        delBtn.onclick = async ()=>{
+
+        const delBtn=document.createElement('button'); 
+        delBtn.textContent='Delete'; 
+        delBtn.className='danger';
+
+        delBtn.onclick=async ()=>{
           if(!confirm('Delete this item?')) return;
-          slot.items.splice(itemIdx,1);
+          slot.items=slot.items.filter(i=>i!==item);
           await saveEvent();
-          openEvent(currentEvent.id);
         };
-        btnContainer.append(claimBtn, delBtn);
-        itemDiv.appendChild(btnContainer);
 
-        // Drag + reorder
-        itemDiv.addEventListener('dragstart', e=>{ e.dataTransfer.setData('text/plain', JSON.stringify({dayIdx,slotIdx,itemIdx})); itemDiv.classList.add('dragging'); });
-        itemDiv.addEventListener('dragend', e=>{ itemDiv.classList.remove('dragging'); document.querySelectorAll('.item').forEach(el=>el.classList.remove('drop-target')); });
-        itemDiv.addEventListener('dragover', e=>{ e.preventDefault(); itemDiv.classList.add('drop-target'); });
-        itemDiv.addEventListener('dragleave', e=>{ itemDiv.classList.remove('drop-target'); });
-        itemDiv.addEventListener('drop', async e=>{
-          e.preventDefault(); itemDiv.classList.remove('drop-target');
-          const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-          const movedItem = currentEvent.data[data.dayIdx].slots[data.slotIdx].items.splice(data.itemIdx,1)[0];
-          currentEvent.data[dayIdx].slots[slotIdx].items.splice(itemIdx,0,movedItem);
-          await saveEvent();
-          openEvent(currentEvent.id);
-        });
-
-        slotDiv.appendChild(itemDiv);
+        actions.append(claimBtn, delBtn);
+        itemRow.append(left,actions);
+        itemsContainer.appendChild(itemRow);
       });
 
-      // Add new item
-      const addContainer = document.createElement('div');
-      addContainer.className='addItemContainer';
-      const addInput = document.createElement('input'); addInput.placeholder='Food item';
-      const addName = document.createElement('input'); addName.placeholder='Your name (optional)';
-      const addBtn = document.createElement('button'); addBtn.textContent='+'; addBtn.className='addItem';
-      addBtn.onclick = async ()=>{
-        const food = addInput.value.trim(); if(!food) return alert('Food item required');
-        const name = addName.value.trim() || null;
-        slot.items.push({ id:uid(), item:food, claimed_by:name });
-        await saveEvent();
-        openEvent(currentEvent.id);
-      };
-      addContainer.append(addInput, addName, addBtn);
-      slotDiv.appendChild(addContainer);
+      const addRow=document.createElement('div'); 
+      addRow.className='addItemContainer';
 
+      const addInput=document.createElement('input'); 
+      addInput.placeholder='Food item (required)';
+
+      const addNameInput=document.createElement('input'); 
+      addNameInput.placeholder='Your name (optional)';
+
+      const addBtn=document.createElement('button'); 
+      addBtn.textContent='+';
+
+      addBtn.onclick=async ()=>{
+        if(!addInput.value.trim()) return alert('Food item required');
+        slot.items.push({ 
+          id:uid(), 
+          item:addInput.value.trim(), 
+          claimed_by:addNameInput.value.trim()||null 
+        });
+        await saveEvent();
+      };
+
+      addRow.append(addInput,addNameInput,addBtn);
+      itemsContainer.appendChild(addRow);
+
+      slotDiv.appendChild(itemsContainer);
       dayDiv.appendChild(slotDiv);
     });
 
@@ -229,32 +327,11 @@ function openEvent(id){
   });
 }
 
-/* ---------------- Save Event ---------------- */
-async function saveEvent(){
-  await supabaseClient.from('events').update({data:currentEvent.data}).eq('id',currentEvent.id);
-}
-
-/* ---------------- Admin ---------------- */
-async function deleteEvent(evt){
-  if(!confirm('Delete this event?')) return;
-  await supabaseClient.from('events').delete().eq('id',evt.id);
-  loadEvents();
-}
-
-async function renameEvent(evt){
-  const name = prompt('New name?', evt.name);
-  if(!name) return;
-  await supabaseClient.from('events').update({name}).eq('id',evt.id);
-  loadEvents();
-}
-
-/* ---------------- Init ---------------- */
+// Init
 const params = new URLSearchParams(location.search);
-if(params.get('event')){
-  loadEvents().then(()=>openEvent(params.get('event')));
-}else{
-  loadEvents();
-}
+if(params.get('event')) loadEvent(params.get('event'));
+else potluckDiv.innerHTML='<p>No event selected.</p>';
 </script>
+
 </body>
 </html>
